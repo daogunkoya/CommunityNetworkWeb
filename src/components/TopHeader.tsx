@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Bell, User, Menu, LogOut, Settings, UserPlus, LogIn } from 'lucide-react';
+import { Bell, User, LogOut, Settings, UserPlus, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,9 +8,24 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 export function TopHeader() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (!error) {
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out."
+      });
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border/50">
@@ -27,7 +41,7 @@ export function TopHeader() {
         </div>
 
         <div className="flex items-center gap-2">
-          {isLoggedIn && (
+          {user && (
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-sport-red">
@@ -43,7 +57,7 @@ export function TopHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              {isLoggedIn ? (
+              {user ? (
                 <>
                   <DropdownMenuItem>
                     <User className="mr-2 h-4 w-4" />
@@ -54,18 +68,18 @@ export function TopHeader() {
                     Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setIsLoggedIn(false)}>
+                  <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>
                 </>
               ) : (
                 <>
-                  <DropdownMenuItem onClick={() => setIsLoggedIn(true)}>
+                  <DropdownMenuItem onClick={() => navigate('/auth')}>
                     <LogIn className="mr-2 h-4 w-4" />
                     Login
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/auth')}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     Sign Up
                   </DropdownMenuItem>
