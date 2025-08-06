@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Home from "./pages/Home";
 import Discussion from "./pages/Discussion";
 import Games from "./pages/Games";
@@ -23,19 +24,24 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public routes */}
             <Route path="/auth" element={<Auth />} />
+            
+            {/* Protected routes */}
             <Route path="/*" element={
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/discussion" element={<Discussion />} />
-                  <Route path="/games" element={<Games />} />
-                  <Route path="/tournament" element={<Tournament />} />
-                  <Route path="/messages" element={<Messages />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Layout>
+              <ProtectedRoute>
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/discussion" element={<Discussion />} />
+                    <Route path="/games" element={<Games />} />
+                    <Route path="/tournament" element={<Tournament />} />
+                    <Route path="/messages" element={<Messages />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Layout>
+              </ProtectedRoute>
             } />
           </Routes>
         </BrowserRouter>

@@ -1,90 +1,142 @@
-import { PostCard } from '@/components/PostCard';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Trophy, MapPin, Calendar, Users, Plus } from 'lucide-react';
+import { Search, Trophy, MapPin, Calendar, Users, Plus, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
-const gamesPosts = [
-  {
-    id: 1,
-    author: 'David Kim',
-    time: '30 minutes ago',
-    content: 'Basketball pickup game tonight! We need 2 more players for a full court game. Intermediate level preferred but all skill levels welcome.',
-    type: 'game' as const,
-    sport: 'Basketball',
-    location: 'Community Center',
-    date: 'Tonight 7 PM',
-    likes: 8,
-    comments: 12
-  },
-  {
-    id: 2,
-    author: 'Lisa Brown',
-    time: '2 hours ago',
-    content: 'Swimming training group forming! Looking for committed swimmers to train together 3x per week. We\'ll focus on technique and endurance.',
-    type: 'game' as const,
-    sport: 'Swimming',
-    location: 'Aquatic Center',
-    date: 'Mon, Wed, Fri',
-    likes: 24,
-    comments: 6,
-    isLiked: true
-  },
-  {
-    id: 3,
-    author: 'Carlos Martinez',
-    time: '4 hours ago',
-    content: 'Football scrimmage this weekend! Casual 11v11 game, everyone welcome. Bring water and shin guards. We play rain or shine!',
-    type: 'game' as const,
-    sport: 'Football',
-    location: 'Sunset Park',
-    date: 'Saturday 10 AM',
-    likes: 19,
-    comments: 15
-  }
-];
-
-const sportsCategories = [
-  { name: 'Tennis', count: 12, color: 'bg-sport-green' },
-  { name: 'Basketball', count: 18, color: 'bg-sport-blue' },
-  { name: 'Football', count: 15, color: 'bg-sport-orange' },
-  { name: 'Cycling', count: 9, color: 'bg-sport-red' },
-  { name: 'Swimming', count: 7, color: 'bg-primary' },
-  { name: 'Running', count: 14, color: 'bg-accent' }
-];
+import { GameEventCard } from '@/components/GameEventCard';
+import { useGames } from '@/hooks/useGames';
+import { GameEvent } from '@/services/games';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Games() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSport, setSelectedSport] = useState<string>('');
+  const { user, signIn } = useAuth();
+
+  const {
+    events,
+    stats,
+    isLoading,
+    joinEvent,
+    leaveEvent,
+    isJoining,
+    isLeaving,
+  } = useGames({
+    sport: selectedSport || undefined,
+    location: searchTerm || undefined,
+  });
+
+  const handleJoinEvent = (eventId: number) => {
+    joinEvent(eventId);
+  };
+
+  const handleLeaveEvent = (eventId: number) => {
+    leaveEvent(eventId);
+  };
+
+  const getSportCount = (sportName: string) => {
+    return events?.filter(event => event.sport === sportName).length || 0;
+  };
+
+  const sportsCategories = [
+    { name: 'Basketball', count: getSportCount('Basketball') },
+    { name: 'Football', count: getSportCount('Football') },
+    { name: 'Tennis', count: getSportCount('Tennis') },
+    { name: 'Swimming', count: getSportCount('Swimming') },
+    { name: 'Cycling', count: getSportCount('Cycling') },
+    { name: 'Volleyball', count: getSportCount('Volleyball') },
+    { name: 'Boxing', count: getSportCount('Boxing') },
+    { name: 'Cricket', count: getSportCount('Cricket') },
+    { name: 'Golf', count: getSportCount('Golf') },
+    { name: 'Martial Arts', count: getSportCount('Martial Arts') },
+  ];
+
+  // If not logged in, show login screen
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Login Required</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground text-center">
+              You need to be logged in to view games.
+            </p>
+            <Button 
+              onClick={() => signIn('john@example.com', 'password')} 
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging in...' : 'Login with Test Account'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
+      {/* Debug Info */}
+      <div className="fixed top-4 left-4 z-50 bg-black/80 text-white p-2 rounded text-xs">
+        <div>User: {user?.first_name} {user?.last_name}</div>
+        <div>Events: {events?.length || 0}</div>
+        <div>Loading: {isLoading ? '🔄 Yes' : '✅ No'}</div>
+        <div>Stats: {stats ? '✅ Yes' : '❌ No'}</div>
+      </div>
+
       {/* Header */}
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 py-4">
-        <div className="flex items-center gap-3 mb-4">
-          <Trophy className="h-6 w-6 text-sport-orange" />
-          <h1 className="text-xl font-bold">Find Games</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Games</h1>
+            <p className="text-muted-foreground">Find and join sports events</p>
+          </div>
+          <Button 
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Game
+          </Button>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+        {/* Search and Filter */}
+        <div className="mt-4 flex gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search by sport or location..."
+              placeholder="Search games..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
+              disabled={isLoading}
             />
           </div>
-          <Button variant="outline" size="icon">
-            <MapPin className="h-4 w-4" />
+          <Button variant="outline" disabled={isLoading}>
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
           </Button>
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="px-4 py-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <Card className="border-border/50">
             <CardContent className="p-4 text-center">
               <Calendar className="h-8 w-8 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold">32</p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-12 mx-auto mb-2" />
+              ) : (
+                <p className="text-2xl font-bold">
+                  {stats?.events_today || 0}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">Games Today</p>
             </CardContent>
           </Card>
@@ -92,7 +144,13 @@ export default function Games() {
           <Card className="border-border/50">
             <CardContent className="p-4 text-center">
               <Users className="h-8 w-8 mx-auto mb-2 text-sport-green" />
-              <p className="text-2xl font-bold">156</p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-12 mx-auto mb-2" />
+              ) : (
+                <p className="text-2xl font-bold">
+                  {stats?.players_online || 0}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">Players Online</p>
             </CardContent>
           </Card>
@@ -104,40 +162,127 @@ export default function Games() {
             <CardTitle className="text-lg">Sports Categories</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="grid grid-cols-3 gap-2">
-              {sportsCategories.map((sport) => (
+            {isLoading ? (
+              <div className="grid grid-cols-3 gap-2">
+                {[...Array(7)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
                 <Button
-                  key={sport.name}
-                  variant="outline"
+                  variant={selectedSport === '' ? 'default' : 'outline'}
                   className="h-auto p-3 flex flex-col gap-1 hover:bg-muted/50"
+                  onClick={() => setSelectedSport('')}
+                  disabled={isLoading}
                 >
-                  <div className={`w-3 h-3 rounded-full ${sport.color} mb-1`} />
-                  <span className="text-sm font-medium">{sport.name}</span>
-                  <span className="text-xs text-muted-foreground">{sport.count} games</span>
+                  <div className="w-3 h-3 rounded-full bg-gray-500 mb-1" />
+                  <span className="text-sm font-medium">All Sports</span>
+                  <span className="text-xs text-muted-foreground">
+                    {events?.length || 0} games
+                  </span>
                 </Button>
-              ))}
-            </div>
+                {sportsCategories.map((sport) => (
+                  <Button
+                    key={sport.name}
+                    variant={selectedSport === sport.name ? 'default' : 'outline'}
+                    className="h-auto p-3 flex flex-col gap-1 hover:bg-muted/50"
+                    onClick={() => setSelectedSport(sport.name)}
+                    disabled={isLoading}
+                  >
+                    <div className={`w-3 h-3 rounded-full bg-${sport.name.toLowerCase().replace(/\s/g, '-')}-500 mb-1`} />
+                    <span className="text-sm font-medium">{sport.name}</span>
+                    <span className="text-xs text-muted-foreground">{sport.count} games</span>
+                  </Button>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Create Game Button */}
-        <Button className="w-full mb-6" variant="sport">
+        <Button 
+          className="w-full mb-6" 
+          disabled={isLoading}
+        >
           <Plus className="h-4 w-4 mr-2" />
-          Create New Game
+          {isLoading ? 'Loading...' : 'Create New Game'}
         </Button>
 
         {/* Games Feed */}
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-lg">Upcoming Games</h3>
-            <Button variant="ghost" size="sm">
-              View All
-            </Button>
+            <h3 className="font-semibold text-lg">
+              Upcoming Games {!isLoading && events && events.length > 0 && `(${events.length})`}
+            </h3>
+            {!isLoading && events && events.length > 0 && (
+              <Button variant="ghost" size="sm">
+                View All
+              </Button>
+            )}
           </div>
           
-          {gamesPosts.map((post) => (
-            <PostCard key={post.id} {...post} />
-          ))}
+          {isLoading ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-3">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                    <div className="flex gap-2 pt-2">
+                      <Skeleton className="h-9 flex-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : events && events.length > 0 ? (
+            <div className="space-y-4">
+              {events.map((event) => (
+                <GameEventCard
+                  key={event.id}
+                  event={event}
+                  onJoin={handleJoinEvent}
+                  onLeave={handleLeaveEvent}
+                  isJoining={isJoining}
+                  isLeaving={isLeaving}
+                />
+              ))}
+            </div>
+          ) : (
+            <Card className="border-border/50">
+              <CardContent className="p-8 text-center">
+                <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">No games found</h3>
+                <p className="text-muted-foreground mb-4">
+                  {searchTerm || selectedSport 
+                    ? 'Try adjusting your search or filters'
+                    : 'Be the first to create a game event!'
+                  }
+                </p>
+                {!searchTerm && !selectedSport && !isLoading && (
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Game
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

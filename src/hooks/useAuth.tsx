@@ -1,10 +1,8 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { authService, AuthUser, LoginCredentials, RegisterData } from '@/services/auth';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   loading: boolean;
   signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -14,61 +12,81 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    // Check for stored user on app load
+    const checkAuth = async () => {
+      try {
+        const storedUser = authService.getStoredUser();
+        if (storedUser && authService.isAuthenticated()) {
+          setUser(storedUser);
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+      } finally {
         setLoading(false);
       }
-    );
+    };
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    checkAuth();
   }, []);
 
   const signUp = async (email: string, password: string, userData: any) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: userData
+    try {
+      const registerData = {
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        email,
+        password,
+        password_confirmation: password,
+        location: userData.location,
+        gender: userData.gender,
+        date_of_birth: userData.date_of_birth,
+        phone: userData.phone,
+        bio: userData.bio,
+        interests: userData.interests,
+        skill_level: userData.skill_level,
+      };
+
+      const response = await authService.register(registerData);
+      
+      // Only set user if no verification is required (user is immediately logged in)
+      if (!response.requires_verification) {
+        setUser(response.user);
       }
-    });
-    return { error };
+      
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    return { error };
+    try {
+      const credentials: LoginCredentials = { email, password };
+      const response = await authService.login(credentials);
+      setUser(response.user);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      await authService.logout();
+      setUser(null);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
   };
 
   return (
     <AuthContext.Provider value={{
       user,
-      session,
       loading,
       signUp,
       signIn,
