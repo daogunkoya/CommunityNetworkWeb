@@ -63,6 +63,11 @@ export interface GameEventStats {
   events_today: number;
   players_online: number;
   upcoming_events: number;
+  sports?: Array<{
+    name: string;
+    count: number;
+    color: string;
+  }>;
 }
 
 export const gameService = {
@@ -167,7 +172,16 @@ export const gameService = {
   async getStats(): Promise<GameEventStats> {
     try {
       const response = await api.get('/events/stats');
-      return response.data.data;
+      const data = response.data.data;
+      
+      // Transform the API response to match our interface
+      return {
+        total_events: data.total_events,
+        events_today: data.events_today || 0,
+        players_online: data.total_participants || 0,
+        upcoming_events: data.upcoming_events,
+        sports: data.sports || [],
+      };
     } catch (error: any) {
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);

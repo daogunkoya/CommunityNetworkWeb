@@ -72,17 +72,15 @@ export default function Games() {
   };
 
   // Get unique sports from events and create categories
-  const getSportsCategories = () => {
-    if (!events) return [];
+    const getSportsCategories = () => {
+    if (!stats?.sports) return [];
     
-    const sportCounts = events.reduce((acc, event) => {
-      acc[event.sport] = (acc[event.sport] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(sportCounts)
-      .map(([sport, count]) => ({ name: sport, count }))
-      .sort((a, b) => b.count - a.count); // Sort by count descending
+    // Use the stats API data which contains total counts across all pages
+    return stats.sports.map(sport => ({
+      name: sport.name,
+      count: sport.count,
+      color: sport.color || 'bg-accent'
+    }));
   };
 
   const sportsCategories = getSportsCategories();
@@ -237,7 +235,7 @@ export default function Games() {
                     onClick={() => setSelectedSport(sport.name)}
                     disabled={isLoading}
                   >
-                    <div className={`w-3 h-3 rounded-full bg-${sport.name.toLowerCase().replace(/\s/g, '-')}-500 mb-1`} />
+                    <div className={`w-3 h-3 rounded-full ${sport.color} mb-1`} />
                     <span className="text-sm font-medium">{sport.name}</span>
                     <span className="text-xs text-muted-foreground">{sport.count} games</span>
                   </Button>
