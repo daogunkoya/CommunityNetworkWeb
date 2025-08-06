@@ -10,12 +10,13 @@ import { Pagination } from '@/components/Pagination';
 import { useGames } from '@/hooks/useGames';
 import { GameEvent } from '@/services/games';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { GamesLoader } from '@/components/GamesLoader';
 
 export default function Games() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSport, setSelectedSport] = useState<string>('');
+  const [selectedSport, setSelectedSport] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -24,14 +25,14 @@ export default function Games() {
   const {
     events,
     pagination,
-    stats,
+    sportStats,
     isLoading,
     joinEvent,
     leaveEvent,
     isJoining,
     isLeaving,
   } = useGames({
-    sport: selectedSport || undefined,
+    sport: selectedSport === 'all' ? undefined : selectedSport,
     location: searchTerm || undefined,
     per_page: 12, // Show 12 games per page for better UX
     page: currentPage,
@@ -73,10 +74,10 @@ export default function Games() {
 
   // Get unique sports from events and create categories
     const getSportsCategories = () => {
-    if (!stats?.sports) return [];
+    if (!sportStats) return [];
     
-    // Use the stats API data which contains total counts across all pages
-    return stats.sports.map(sport => ({
+    // Use the sport stats API data which contains total counts across all pages
+    return sportStats.map(sport => ({
       name: sport.name,
       count: sport.count,
       color: sport.color || 'bg-accent'
@@ -143,8 +144,8 @@ export default function Games() {
           </Button>
         </div>
 
-        {/* Search and Filter */}
-        <div className="mt-4 flex gap-4">
+        {/* Search and Sport Filter */}
+        <div className="mt-4 flex gap-3">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -155,95 +156,45 @@ export default function Games() {
               disabled={isLoading}
             />
           </div>
-          <Button variant="outline" disabled={isLoading}>
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
-          </Button>
+          <Select
+            value={selectedSport}
+            onValueChange={(value) => setSelectedSport(value)}
+            disabled={isLoading}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All Sports" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gray-500" />
+                  <span>All Sports</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {pagination?.total || 0} games
+                  </span>
+                </div>
+              </SelectItem>
+              {sportsCategories.map((sport) => (
+                <SelectItem key={sport.name} value={sport.name}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${sport.color}`} />
+                    <span>{sport.name}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {sport.count} games
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="px-4 py-6">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Card className="border-border/50">
-            <CardContent className="p-4 text-center">
-              <Calendar className="h-8 w-8 mx-auto mb-2 text-primary" />
-              {isLoading ? (
-                <Skeleton className="h-8 w-12 mx-auto mb-2" />
-              ) : (
-                <p className="text-2xl font-bold">
-                  {stats?.events_today || 0}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground">Games Today</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-border/50">
-            <CardContent className="p-4 text-center">
-              <Users className="h-8 w-8 mx-auto mb-2 text-sport-green" />
-              {isLoading ? (
-                <Skeleton className="h-8 w-12 mx-auto mb-2" />
-              ) : (
-                <p className="text-2xl font-bold">
-                  {stats?.players_online || 0}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground">Players Online</p>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Sports Categories */}
-        <Card className="mb-6 border-border/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">
-              Sports Categories ({sportsCategories.length} sports)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {isLoading ? (
-              <div className="grid grid-cols-3 gap-2">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="h-16 border rounded-lg p-3 flex flex-col gap-1">
-                    <Skeleton className="w-3 h-3 rounded-full" />
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-3 w-12" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  variant={selectedSport === '' ? 'default' : 'outline'}
-                  className="h-auto p-3 flex flex-col gap-1 hover:bg-muted/50"
-                  onClick={() => setSelectedSport('')}
-                  disabled={isLoading}
-                >
-                  <div className="w-3 h-3 rounded-full bg-gray-500 mb-1" />
-                  <span className="text-sm font-medium">All Sports</span>
-                  <span className="text-xs text-muted-foreground">
-                    {events?.length || 0} games
-                  </span>
-                </Button>
-                {sportsCategories.map((sport) => (
-                  <Button
-                    key={sport.name}
-                    variant={selectedSport === sport.name ? 'default' : 'outline'}
-                    className="h-auto p-3 flex flex-col gap-1 hover:bg-muted/50"
-                    onClick={() => setSelectedSport(sport.name)}
-                    disabled={isLoading}
-                  >
-                    <div className={`w-3 h-3 rounded-full ${sport.color} mb-1`} />
-                    <span className="text-sm font-medium">{sport.name}</span>
-                    <span className="text-xs text-muted-foreground">{sport.count} games</span>
-                  </Button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
+
 
         {/* Create Game Button */}
         <Button 

@@ -189,4 +189,17 @@ export const gameService = {
       throw new Error('Failed to fetch game statistics');
     }
   },
+
+  // Get sport statistics (public endpoint)
+  async getSportStats(): Promise<Array<{ name: string; count: number; color: string }>> {
+    try {
+      const response = await api.get('/sport-stats');
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to fetch sport statistics');
+    }
+  },
 }; 

@@ -29,14 +29,14 @@ export const useGames = (filters?: GameEventFilters) => {
     total: 0,
   };
 
-  // Query for game stats
+  // Query for sport stats (public endpoint)
   const {
-    data: stats,
-    isLoading: isLoadingStats,
-    error: statsError,
+    data: sportStats,
+    isLoading: isLoadingSportStats,
+    error: sportStatsError,
   } = useQuery({
-    queryKey: ['game-stats'],
-    queryFn: () => gameService.getStats(),
+    queryKey: ['sport-stats'],
+    queryFn: () => gameService.getSportStats(),
     staleTime: 10 * 60 * 1000, // 10 minutes
     retry: 1,
     retryDelay: 1000,
@@ -146,16 +146,16 @@ export const useGames = (filters?: GameEventFilters) => {
     // Data
     events,
     pagination,
-    stats,
+    sportStats,
     
     // Loading states
-    isLoading: isLoadingEvents || isLoadingStats,
+    isLoading: isLoadingEvents || isLoadingSportStats,
     isLoadingEvents,
-    isLoadingStats,
+    isLoadingSportStats,
     
     // Error states
     eventsError,
-    statsError,
+    sportStatsError,
     
     // Mutations
     createEvent: createEventMutation.mutate,
