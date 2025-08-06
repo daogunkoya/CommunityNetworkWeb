@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Trophy, MapPin, Calendar, Users, Plus, Filter, Loader2 } from 'lucide-react';
+import { Search, Trophy, MapPin, Calendar, Users, Plus, Loader2, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GameEventCard } from '@/components/GameEventCard';
@@ -17,6 +17,9 @@ import { GamesLoader } from '@/components/GamesLoader';
 export default function Games() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSport, setSelectedSport] = useState<string>('all');
+  const [selectedSkillLevel, setSelectedSkillLevel] = useState<string>('all');
+  const [selectedDateRange, setSelectedDateRange] = useState<string>('all');
+  const [showMyGamesOnly, setShowMyGamesOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -34,6 +37,16 @@ export default function Games() {
   } = useGames({
     sport: selectedSport === 'all' ? undefined : selectedSport,
     location: searchTerm || undefined,
+    skill_level: selectedSkillLevel === 'all' ? undefined : parseInt(selectedSkillLevel),
+    my_games_only: showMyGamesOnly,
+    date_from: selectedDateRange === 'today' ? new Date().toISOString().split('T')[0] : 
+               selectedDateRange === 'tomorrow' ? new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0] :
+               selectedDateRange === 'this-week' ? new Date().toISOString().split('T')[0] :
+               selectedDateRange === 'this-month' ? new Date().toISOString().split('T')[0] : undefined,
+    date_to: selectedDateRange === 'today' ? new Date().toISOString().split('T')[0] :
+             selectedDateRange === 'tomorrow' ? new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0] :
+             selectedDateRange === 'this-week' ? new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0] :
+             selectedDateRange === 'this-month' ? new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0] : undefined,
     per_page: 12, // Show 12 games per page for better UX
     page: currentPage,
   });
@@ -54,7 +67,7 @@ export default function Games() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedSport]);
+  }, [searchTerm, selectedSport, selectedSkillLevel, selectedDateRange, showMyGamesOnly]);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -84,9 +97,42 @@ export default function Games() {
     }));
   };
 
-  const sportsCategories = getSportsCategories();
+  // Helper function to get date range based on selection
+  const getDateRange = (dateRange: string) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const thisWeek = new Date(today);
+    thisWeek.setDate(thisWeek.getDate() + 7);
+    
+    const thisMonth = new Date(today);
+    thisMonth.setMonth(thisMonth.getMonth() + 1);
+    
+    switch (dateRange) {
+      case 'today':
+        const todayStr = today.toISOString().split('T')[0];
+        return { date_from: todayStr, date_to: todayStr };
+      case 'tomorrow':
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        return { date_from: tomorrowStr, date_to: tomorrowStr };
+      case 'this-week':
+        return { 
+          date_from: today.toISOString().split('T')[0], 
+          date_to: thisWeek.toISOString().split('T')[0] 
+        };
+      case 'this-month':
+        return { 
+          date_from: today.toISOString().split('T')[0], 
+          date_to: thisMonth.toISOString().split('T')[0] 
+        };
+      default:
+        return { date_from: undefined, date_to: undefined };
+    }
+  };
 
-  // If not logged in, show login screen
+  const dateRange = getDateRange(selectedDateRange);
+  const sportsCategories = getSportsCategories();
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -129,7 +175,7 @@ export default function Games() {
 
       {/* Header */}
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Games</h1>
             <p className="text-muted-foreground">Find and join sports events</p>
@@ -137,61 +183,119 @@ export default function Games() {
           <Button 
             onClick={() => setShowCreateModal(true)}
             disabled={isLoading}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Create Game
           </Button>
         </div>
 
-        {/* Search and Sport Filter */}
-        <div className="mt-4 flex gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search games..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+        {/* Filters and Search */}
+        <div className="mt-4 space-y-3">
+          {/* Main Filters Row */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <Select
+              value={selectedSport}
+              onValueChange={(value) => setSelectedSport(value)}
               disabled={isLoading}
-            />
-          </div>
-          <Select
-            value={selectedSport}
-            onValueChange={(value) => setSelectedSport(value)}
-            disabled={isLoading}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="All Sports" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gray-500" />
-                  <span>All Sports</span>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {pagination?.total || 0} games
-                  </span>
-                </div>
-              </SelectItem>
-              {sportsCategories.map((sport) => (
-                <SelectItem key={sport.name} value={sport.name}>
+            >
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="All Sports" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
                   <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${sport.color}`} />
-                    <span>{sport.name}</span>
+                    <div className="w-3 h-3 rounded-full bg-gray-500" />
+                    <span>All Sports</span>
                     <span className="text-xs text-muted-foreground ml-auto">
-                      {sport.count} games
+                      {pagination?.total || 0} games
                     </span>
                   </div>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {sportsCategories.map((sport) => (
+                  <SelectItem key={sport.name} value={sport.name}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${sport.color}`} />
+                      <span>{sport.name}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {sport.count} games
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select
+              value={selectedSkillLevel}
+              onValueChange={(value) => setSelectedSkillLevel(value)}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="All Levels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Skill Levels</SelectItem>
+                <SelectItem value="1">Beginner</SelectItem>
+                <SelectItem value="2">Intermediate</SelectItem>
+                <SelectItem value="3">Advanced</SelectItem>
+                <SelectItem value="4">Expert</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={selectedDateRange}
+              onValueChange={(value) => setSelectedDateRange(value)}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="All Dates" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Dates</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="tomorrow">Tomorrow</SelectItem>
+                <SelectItem value="this-week">This Week</SelectItem>
+                <SelectItem value="this-month">This Month</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="w-full sm:flex-1 relative sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search games..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-8"
+                disabled={isLoading}
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            <Button
+              variant={showMyGamesOnly ? "default" : "outline"}
+              onClick={() => setShowMyGamesOnly(!showMyGamesOnly)}
+              disabled={isLoading}
+              className="w-full sm:w-auto whitespace-nowrap"
+            >
+              <Trophy className="h-4 w-4 mr-2" />
+              My Games Only
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="px-4 py-6">
+      <div className="px-4 sm:px-6 py-6">
 
 
 
@@ -199,7 +303,7 @@ export default function Games() {
         {/* Create Game Button */}
         <Button 
           onClick={() => setShowCreateModal(true)}
-          className="w-full mb-6" 
+          className="w-full sm:w-auto mb-6" 
           disabled={isLoading}
         >
           <Plus className="h-4 w-4 mr-2" />

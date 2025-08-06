@@ -54,6 +54,7 @@ export interface GameEventFilters {
   date_from?: string;
   date_to?: string;
   skill_level?: number;
+  my_games_only?: boolean;
   per_page?: number;
   page?: number;
 }
@@ -72,19 +73,27 @@ export interface GameEventStats {
 
 export const gameService = {
   // Get all game events with optional filters
-  async getEvents(filters?: GameEventFilters): Promise<{ data: GameEvent[]; meta: any }> {
+  async getEvents(filters?: GameEventFilters): Promise<{ data: GameEvent[]; pagination: any }> {
     try {
       const params = new URLSearchParams();
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            params.append(key, value.toString());
+            // Handle boolean values properly
+            if (typeof value === 'boolean') {
+              params.append(key, value ? '1' : '0');
+            } else {
+              params.append(key, value.toString());
+            }
           }
         });
       }
 
       const response = await api.get(`/events?${params.toString()}`);
-      return response.data;
+      return {
+        data: response.data.data,
+        pagination: response.data.pagination
+      };
     } catch (error: any) {
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);

@@ -59,7 +59,14 @@ export function GameEventCard({
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={event.organiser.avatar} />
+              <AvatarImage 
+                src={event.organiser.avatar ? 
+                  (event.organiser.avatar.startsWith('http') ? 
+                    event.organiser.avatar : 
+                    `http://localhost:8001/storage/${event.organiser.avatar}`
+                  ) : undefined
+                } 
+              />
               <AvatarFallback>
                 {event.organiser.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
@@ -176,7 +183,14 @@ export function GameEventCard({
             <div className="flex flex-wrap gap-1">
               {event.participants.slice(0, 5).map((participant) => (
                 <Avatar key={participant.id} className="h-6 w-6">
-                  <AvatarImage src={participant.avatar} />
+                  <AvatarImage 
+                    src={participant.avatar ? 
+                      (participant.avatar.startsWith('http') ? 
+                        participant.avatar : 
+                        `http://localhost:8001/storage/${participant.avatar}`
+                      ) : undefined
+                    } 
+                  />
                   <AvatarFallback className="text-xs">
                     {participant.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
