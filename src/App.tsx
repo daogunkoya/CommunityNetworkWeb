@@ -11,6 +11,7 @@ import Discussion from "./pages/Discussion";
 import Games from "./pages/Games";
 import Tournament from "./pages/Tournament";
 import Messages from "./pages/Messages";
+import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
                     <Route path="/games" element={<Games />} />
                     <Route path="/tournament" element={<Tournament />} />
                     <Route path="/messages" element={<Messages />} />
+                    <Route path="/profile" element={<Profile />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

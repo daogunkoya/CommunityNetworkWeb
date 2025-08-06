@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, MessageSquare, Trophy, Calendar, MessageCircle } from 'lucide-react';
+import { Home, MessageSquare, Trophy, Calendar, MessageCircle, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigationItems = [
@@ -9,6 +9,7 @@ const navigationItems = [
   { name: 'Games', href: '/games', icon: Trophy },
   { name: 'Tournament', href: '/tournament', icon: Calendar },
   { name: 'Messages', href: '/messages', icon: MessageCircle },
+  { name: 'Profile', href: '/profile', icon: User },
 ];
 
 export function MobileNavigation() {
