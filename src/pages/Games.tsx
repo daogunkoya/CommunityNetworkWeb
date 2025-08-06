@@ -49,22 +49,26 @@ export default function Games() {
     }
   };
 
+  // Dynamically generate sports categories from actual events
   const getSportCount = (sportName: string) => {
     return events?.filter(event => event.sport === sportName).length || 0;
   };
 
-  const sportsCategories = [
-    { name: 'Basketball', count: getSportCount('Basketball') },
-    { name: 'Football', count: getSportCount('Football') },
-    { name: 'Tennis', count: getSportCount('Tennis') },
-    { name: 'Swimming', count: getSportCount('Swimming') },
-    { name: 'Cycling', count: getSportCount('Cycling') },
-    { name: 'Volleyball', count: getSportCount('Volleyball') },
-    { name: 'Boxing', count: getSportCount('Boxing') },
-    { name: 'Cricket', count: getSportCount('Cricket') },
-    { name: 'Golf', count: getSportCount('Golf') },
-    { name: 'Martial Arts', count: getSportCount('Martial Arts') },
-  ];
+  // Get unique sports from events and create categories
+  const getSportsCategories = () => {
+    if (!events) return [];
+    
+    const sportCounts = events.reduce((acc, event) => {
+      acc[event.sport] = (acc[event.sport] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(sportCounts)
+      .map(([sport, count]) => ({ name: sport, count }))
+      .sort((a, b) => b.count - a.count); // Sort by count descending
+  };
+
+  const sportsCategories = getSportsCategories();
 
   // If not logged in, show login screen
   if (!user) {
@@ -109,6 +113,7 @@ export default function Games() {
       <div className="fixed top-4 left-4 z-50 bg-black/80 text-white p-2 rounded text-xs">
         <div>User: {user?.first_name} {user?.last_name}</div>
         <div>Events: {events?.length || 0}</div>
+        <div>Sports: {sportsCategories.length}</div>
         <div>Loading: {isLoading ? '🔄 Yes' : '✅ No'}</div>
         <div>Stats: {stats ? '✅ Yes' : '❌ No'}</div>
       </div>
@@ -184,7 +189,9 @@ export default function Games() {
         {/* Sports Categories */}
         <Card className="mb-6 border-border/50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Sports Categories</CardTitle>
+            <CardTitle className="text-lg">
+              Sports Categories ({sportsCategories.length} sports)
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             {isLoading ? (
