@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Trophy, MapPin, Calendar, Users, Plus, Filter } from 'lucide-react';
+import { Search, Trophy, MapPin, Calendar, Users, Plus, Filter, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GameEventCard } from '@/components/GameEventCard';
@@ -9,10 +9,12 @@ import { useGames } from '@/hooks/useGames';
 import { GameEvent } from '@/services/games';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
+import { GamesLoader } from '@/components/GamesLoader';
 
 export default function Games() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSport, setSelectedSport] = useState<string>('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { user, signIn } = useAuth();
 
   const {
@@ -34,6 +36,17 @@ export default function Games() {
 
   const handleLeaveEvent = (eventId: number) => {
     leaveEvent(eventId);
+  };
+
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      await signIn('john@example.com', 'password');
+    } catch (error) {
+      console.error('Login failed:', error);
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   const getSportCount = (sportName: string) => {
@@ -66,16 +79,28 @@ export default function Games() {
               You need to be logged in to view games.
             </p>
             <Button 
-              onClick={() => signIn('john@example.com', 'password')} 
+              onClick={handleLogin} 
               className="w-full"
-              disabled={isLoading}
+              disabled={isLoggingIn}
             >
-              {isLoading ? 'Logging in...' : 'Login with Test Account'}
+              {isLoggingIn ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                'Login with Test Account'
+              )}
             </Button>
           </CardContent>
         </Card>
       </div>
     );
+  }
+
+  // Show full loader while initial loading
+  if (isLoading && !events) {
+    return <GamesLoader />;
   }
 
   return (
@@ -165,7 +190,11 @@ export default function Games() {
             {isLoading ? (
               <div className="grid grid-cols-3 gap-2">
                 {[...Array(7)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+                  <div key={i} className="h-16 border rounded-lg p-3 flex flex-col gap-1">
+                    <Skeleton className="w-3 h-3 rounded-full" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-3 w-12" />
+                  </div>
                 ))}
               </div>
             ) : (

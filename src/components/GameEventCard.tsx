@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, MapPin, Calendar, Users, Trophy, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, MapPin, Calendar, Users, Trophy, Edit, Trash2, Loader2 } from 'lucide-react';
 import { GameEvent } from '@/services/games';
 import { format } from 'date-fns';
 
@@ -140,7 +140,14 @@ export function GameEventCard({
                 disabled={isJoining}
                 size="sm"
               >
-                {isJoining ? 'Joining...' : 'Join'}
+                {isJoining ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Joining...
+                  </>
+                ) : (
+                  'Join'
+                )}
               </Button>
             )}
             {isParticipating && (
@@ -150,7 +157,14 @@ export function GameEventCard({
                 variant="outline"
                 size="sm"
               >
-                {isLeaving ? 'Leaving...' : 'Leave'}
+                {isLeaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Leaving...
+                  </>
+                ) : (
+                  'Leave'
+                )}
               </Button>
             )}
           </div>
