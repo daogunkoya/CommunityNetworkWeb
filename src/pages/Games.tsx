@@ -5,6 +5,7 @@ import { Search, Trophy, MapPin, Calendar, Users, Plus, Filter, Loader2 } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GameEventCard } from '@/components/GameEventCard';
+import { CreateGameEventModal } from '@/components/CreateGameEventModal';
 import { useGames } from '@/hooks/useGames';
 import { GameEvent } from '@/services/games';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +16,7 @@ export default function Games() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSport, setSelectedSport] = useState<string>('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const { user, signIn } = useAuth();
 
   const {
@@ -36,6 +38,11 @@ export default function Games() {
 
   const handleLeaveEvent = (eventId: number) => {
     leaveEvent(eventId);
+  };
+
+  const handleGameCreated = () => {
+    // Refresh the games list
+    window.location.reload();
   };
 
   const handleLogin = async () => {
@@ -109,14 +116,7 @@ export default function Games() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Debug Info */}
-      <div className="fixed top-4 left-4 z-50 bg-black/80 text-white p-2 rounded text-xs">
-        <div>User: {user?.first_name} {user?.last_name}</div>
-        <div>Events: {events?.length || 0}</div>
-        <div>Sports: {sportsCategories.length}</div>
-        <div>Loading: {isLoading ? '🔄 Yes' : '✅ No'}</div>
-        <div>Stats: {stats ? '✅ Yes' : '❌ No'}</div>
-      </div>
+
 
       {/* Header */}
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 py-4">
@@ -126,6 +126,7 @@ export default function Games() {
             <p className="text-muted-foreground">Find and join sports events</p>
           </div>
           <Button 
+            onClick={() => setShowCreateModal(true)}
             disabled={isLoading}
             className="flex items-center gap-2"
           >
@@ -238,6 +239,7 @@ export default function Games() {
 
         {/* Create Game Button */}
         <Button 
+          onClick={() => setShowCreateModal(true)}
           className="w-full mb-6" 
           disabled={isLoading}
         >
@@ -311,7 +313,7 @@ export default function Games() {
                   }
                 </p>
                 {!searchTerm && !selectedSport && !isLoading && (
-                  <Button>
+                  <Button onClick={() => setShowCreateModal(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create First Game
                   </Button>
@@ -321,6 +323,13 @@ export default function Games() {
           )}
         </div>
       </div>
+
+      {/* Create Game Modal */}
+      <CreateGameEventModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onGameCreated={handleGameCreated}
+      />
     </div>
   );
 }
