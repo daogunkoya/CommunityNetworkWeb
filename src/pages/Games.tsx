@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Trophy, MapPin, Calendar, Users, Plus, Filter, Loader2 } from 'lucide-react';
@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GameEventCard } from '@/components/GameEventCard';
 import { CreateGameEventModal } from '@/components/CreateGameEventModal';
+import { Pagination } from '@/components/Pagination';
 import { useGames } from '@/hooks/useGames';
 import { GameEvent } from '@/services/games';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,12 +16,14 @@ import { GamesLoader } from '@/components/GamesLoader';
 export default function Games() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSport, setSelectedSport] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { user, signIn } = useAuth();
 
   const {
     events,
+    pagination,
     stats,
     isLoading,
     joinEvent,
@@ -30,6 +33,8 @@ export default function Games() {
   } = useGames({
     sport: selectedSport || undefined,
     location: searchTerm || undefined,
+    per_page: 12, // Show 12 games per page for better UX
+    page: currentPage,
   });
 
   const handleJoinEvent = (eventId: number) => {
@@ -44,6 +49,11 @@ export default function Games() {
     // Refresh the games list
     window.location.reload();
   };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedSport]);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -251,7 +261,7 @@ export default function Games() {
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-lg">
-              Upcoming Games {!isLoading && events && events.length > 0 && `(${events.length})`}
+              Upcoming Games {!isLoading && pagination && `(${pagination.total})`}
             </h3>
             {!isLoading && events && events.length > 0 && (
               <Button variant="ghost" size="sm">
@@ -260,7 +270,35 @@ export default function Games() {
             )}
           </div>
           
-          {isLoading ? (
+          {isLoading && currentPage === 1 ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-3">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                    <div className="flex gap-2 pt-2">
+                      <Skeleton className="h-9 flex-1" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : isLoading && currentPage > 1 ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="border-border/50">
@@ -289,18 +327,32 @@ export default function Games() {
               ))}
             </div>
           ) : events && events.length > 0 ? (
-            <div className="space-y-4">
-              {events.map((event) => (
-                <GameEventCard
-                  key={event.id}
-                  event={event}
-                  onJoin={handleJoinEvent}
-                  onLeave={handleLeaveEvent}
-                  isJoining={isJoining}
-                  isLeaving={isLeaving}
+            <>
+              <div className="space-y-4">
+                {events.map((event) => (
+                  <GameEventCard
+                    key={event.id}
+                    event={event}
+                    onJoin={handleJoinEvent}
+                    onLeave={handleLeaveEvent}
+                    isJoining={isJoining}
+                    isLeaving={isLeaving}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {!isLoading && pagination && pagination.last_page > 1 && (
+                <Pagination
+                  currentPage={pagination.current_page}
+                  lastPage={pagination.last_page}
+                  total={pagination.total}
+                  perPage={pagination.per_page}
+                  onPageChange={setCurrentPage}
+                  isLoading={isLoading}
                 />
-              ))}
-            </div>
+              )}
+            </>
           ) : (
             <Card className="border-border/50">
               <CardContent className="p-8 text-center">

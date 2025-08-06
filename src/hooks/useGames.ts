@@ -20,6 +20,15 @@ export const useGames = (filters?: GameEventFilters) => {
     retryDelay: 1000,
   });
 
+  // Extract pagination data
+  const events = eventsData?.data || [];
+  const pagination = eventsData?.pagination || {
+    current_page: 1,
+    last_page: 1,
+    per_page: 15,
+    total: 0,
+  };
+
   // Query for game stats
   const {
     data: stats,
@@ -135,7 +144,8 @@ export const useGames = (filters?: GameEventFilters) => {
 
   return {
     // Data
-    events: eventsData?.data || [],
+    events,
+    pagination,
     stats,
     
     // Loading states

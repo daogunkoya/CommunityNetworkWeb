@@ -55,6 +55,7 @@ export interface GameEventFilters {
   date_to?: string;
   skill_level?: number;
   per_page?: number;
+  page?: number;
 }
 
 export interface GameEventStats {
