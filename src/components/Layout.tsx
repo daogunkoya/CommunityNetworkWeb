@@ -1,5 +1,4 @@
 import { TopHeader } from './TopHeader';
-import { MobileNavigation } from './MobileNavigation';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,7 +11,6 @@ export function Layout({ children }: LayoutProps) {
       <main className="relative">
         {children}
       </main>
-      <MobileNavigation />
     </div>
   );
 }

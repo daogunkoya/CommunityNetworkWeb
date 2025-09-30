@@ -1,131 +1,136 @@
-import api from './api';
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData {
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-  location: string;
-  gender?: string;
-  date_of_birth?: string;
-  phone?: string;
-  bio?: string;
-  interests?: string[];
-  skill_level?: string;
-}
-
-export interface AuthUser {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  email_verified_at?: string;
-}
-
-export interface AuthToken {
-  accessTokenId: string;
-  tokenType: string;
-  expiresIn: number;
-  accessToken: string;
-}
+import { api } from './api';
+import { 
+  AuthType, 
+  LoginCredentials, 
+  RegisterData, 
+  AuthUser, 
+  SocialAuthData 
+} from '@/types/auth';
 
 export interface AuthResponse {
-  user: AuthUser;
-  token?: AuthToken;
+  success: boolean;
   message: string;
+  data: {
+    user: AuthUser;
+    token: string;
+  };
+}
+
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: AuthUser;
+    token: string | {
+      accessToken: string;
+      tokenType: string;
+      expiresIn: number;
+    };
+  };
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: AuthUser;
+    token: string | {
+      accessToken: string;
+      tokenType: string;
+      expiresIn: number;
+    };
+  };
   requires_verification?: boolean;
 }
 
 export const authService = {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      const response = await api.post<AuthResponse>('/login', credentials);
-      const { user, token } = response.data;
-      
-      // Store auth data in localStorage
-      localStorage.setItem('auth_token', token.accessToken);
-      localStorage.setItem('auth_user', JSON.stringify(user));
-      
+      const response = await api.post('/login', credentials);
       return response.data;
     } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      throw new Error('Login failed. Please try again.');
+      throw new Error(error.response?.data?.message || 'Login failed');
     }
   },
 
-  async register(data: RegisterData): Promise<AuthResponse> {
+  async register(data: RegisterData): Promise<RegisterResponse> {
     try {
-      const response = await api.post<AuthResponse>('/register', data);
-      const { user, token, requires_verification } = response.data;
-      
-      // Only store auth data if no verification is required (user is immediately logged in)
-      if (!requires_verification && token) {
-        localStorage.setItem('auth_token', token.accessToken);
-        localStorage.setItem('auth_user', JSON.stringify(user));
-      }
-      
+      const response = await api.post('/registration/register', data);
       return response.data;
     } catch (error: any) {
-      if (error.response?.data?.errors) {
-        const errorMessages = Object.values(error.response.data.errors).flat();
-        throw new Error(errorMessages.join(', '));
-      }
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      throw new Error('Registration failed. Please try again.');
+      throw new Error(error.response?.data?.message || 'Registration failed');
+    }
+  },
+
+  async socialAuth(data: SocialAuthData): Promise<AuthResponse> {
+    try {
+      const response = await api.post('/auth', {
+        auth_type: data.provider === 'google' ? 2 : 1,
+        credentials: {
+          access_token: data.token,
+          provider_id: data.userData.id,
+          profile: {
+            email: data.userData.email,
+            first_name: data.userData.name.split(' ')[0],
+            last_name: data.userData.name.split(' ').slice(1).join(' '),
+          }
+        }
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Social authentication failed');
     }
   },
 
   async logout(): Promise<void> {
     try {
       await api.post('/logout');
-    } catch (error) {
-      // Even if logout fails on server, we should clear local auth
-      console.warn('Logout request failed:', error);
+    } catch (error: any) {
+      // Even if logout fails, clear local storage
     } finally {
-      // Clear local auth data
       localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
+      localStorage.removeItem('user');
     }
   },
 
-  async getCurrentUser(): Promise<AuthUser | null> {
+  async refreshToken(): Promise<{ token: string }> {
     try {
-      const response = await api.get('/user');
-      return response.data.user;
-    } catch (error) {
+      const response = await api.post('/auth/refresh');
+      return response.data;
+    } catch (error: any) {
+      throw new Error('Token refresh failed');
+    }
+  },
+
+  // Helper methods
+  getStoredUser(): AuthUser | null {
+    try {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
       return null;
     }
   },
 
-  getStoredUser(): AuthUser | null {
-    const userStr = localStorage.getItem('auth_user');
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch {
-        return null;
-      }
-    }
-    return null;
+  setStoredUser(user: AuthUser): void {
+    localStorage.setItem('user', JSON.stringify(user));
+  },
+
+  getStoredToken(): string | null {
+    return localStorage.getItem('auth_token');
+  },
+
+  setStoredToken(token: string): void {
+    localStorage.setItem('auth_token', token);
   },
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('auth_token');
+    const token = this.getStoredToken();
+    return !!token;
   },
 
-  getToken(): string | null {
-    return localStorage.getItem('auth_token');
+  clearStoredAuth(): void {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
   }
-};
-
-export default authService; 
+}; 

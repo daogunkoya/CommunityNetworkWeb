@@ -6,8 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Calendar, MapPin, Users, Trophy } from 'lucide-react';
+import { Loader2, Calendar, MapPin, Users, Trophy, X } from 'lucide-react';
 import { gameService, CreateGameEventData } from '@/services/games';
+import AddressInput from '@/components/ui/AddressInput';
 
 interface CreateGameEventModalProps {
   open: boolean;
@@ -27,9 +28,18 @@ export function CreateGameEventModal({ open, onOpenChange, onGameCreated }: Crea
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<CreateGameEventData>({
-    game_type_id: '',
+    game_type_id: 0,
     skill_level: 1,
     location: '',
+    address: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    country: '',
+    latitude: null,
+    longitude: null,
+    community_name: '',
+    borough: '',
     starts_at: '',
     venue_booked: false,
     max_participants: 10,
@@ -37,19 +47,31 @@ export function CreateGameEventModal({ open, onOpenChange, onGameCreated }: Crea
     notes: '',
   });
 
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
       setFormData({
-        game_type_id: '',
+        game_type_id: 0,
         skill_level: 1,
         location: '',
+        address: '',
+        city: '',
+        state: '',
+        postal_code: '',
+        country: '',
+        latitude: null,
+        longitude: null,
+        community_name: '',
+        borough: '',
         starts_at: '',
         venue_booked: false,
         max_participants: 10,
         waiting_list_enabled: false,
         notes: '',
       });
+      setSelectedAddress(null);
       loadGameTypes();
     }
   }, [open]);
@@ -105,9 +127,26 @@ export function CreateGameEventModal({ open, onOpenChange, onGameCreated }: Crea
     }));
   };
 
+  const handleAddressSelect = (address: any) => {
+    setSelectedAddress(address);
+    setFormData(prev => ({
+      ...prev,
+      location: address.formatted_address,
+      address: address.address || '',
+      city: address.city || '',
+      state: address.state || '',
+      postal_code: address.postal_code || '',
+      country: address.country || '',
+      latitude: address.latitude || null,
+      longitude: address.longitude || null,
+      community_name: address.community_name || '',
+      borough: address.borough || '',
+    }));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-primary" />
@@ -158,18 +197,14 @@ export function CreateGameEventModal({ open, onOpenChange, onGameCreated }: Crea
 
           {/* Location */}
           <div className="space-y-2">
-            <Label htmlFor="location">Location *</Label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                id="location"
-                placeholder="Enter venue or location"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
+            <AddressInput
+              value={formData.location}
+              onChange={(value) => handleInputChange('location', value)}
+              onAddressSelect={handleAddressSelect}
+              placeholder="Enter game venue or location"
+              label="Game Location *"
+              showPostcodeSearch={true}
+            />
           </div>
 
           {/* Date and Time */}
@@ -182,9 +217,35 @@ export function CreateGameEventModal({ open, onOpenChange, onGameCreated }: Crea
                 type="datetime-local"
                 value={formData.starts_at}
                 onChange={(e) => handleInputChange('starts_at', e.target.value)}
-                className="pl-10"
+                className="pl-10 pr-20"
                 required
               />
+              {formData.starts_at && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleInputChange('starts_at', '')}
+                    className="absolute right-2 top-2 h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={() => {
+                      // Blur the input to close the date picker
+                      const input = document.getElementById('starts_at') as HTMLInputElement;
+                      if (input) input.blur();
+                    }}
+                    className="absolute right-9 top-2 h-6 px-2 text-xs"
+                  >
+                    Done
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 

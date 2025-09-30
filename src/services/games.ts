@@ -1,10 +1,21 @@
-import api from './api';
+import { api } from './api';
 
 export interface GameEvent {
   id: number;
   title: string;
   sport: string;
   location: string;
+  address?: string;
+  city?: string;
+  borough?: string;
+  community?: {
+    id: number;
+    name: string;
+    type: string;
+    full_location: string;
+  };
+  distance_km?: number;
+  distance_formatted?: string;
   starts_at: string;
   starts_at_relative: string;
   skill_level: number;
@@ -38,6 +49,15 @@ export interface GameEvent {
 export interface CreateGameEventData {
   game_type_id: number;
   location: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  community_name?: string;
+  borough?: string;
   starts_at: string;
   skill_level: number;
   max_participants?: number;

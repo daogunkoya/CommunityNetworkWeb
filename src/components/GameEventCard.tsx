@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, MapPin, Calendar, Users, Trophy, Edit, Trash2, Loader2 } from 'lucide-react';
+import { MoreHorizontal, MapPin, Calendar, Users, Trophy, Edit, Trash2, Loader2, Navigation } from 'lucide-react';
 import { GameEvent } from '@/services/games';
 import { format } from 'date-fns';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface GameEventCardProps {
   event: GameEvent;
@@ -30,20 +31,25 @@ export function GameEventCard({
   isDeleting,
 }: GameEventCardProps) {
   const [showActions, setShowActions] = useState(false);
+  const navigate = useNavigate();
 
-  const handleJoin = () => {
+  const handleJoin = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     onJoin?.(event.id);
   };
 
-  const handleLeave = () => {
+  const handleLeave = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     onLeave?.(event.id);
   };
 
-  const handleEdit = () => {
+  const handleEdit = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     onEdit?.(event);
   };
 
-  const handleDelete = () => {
+  const handleDelete = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (confirm('Are you sure you want to delete this event?')) {
       onDelete?.(event.id);
     }
@@ -54,10 +60,13 @@ export function GameEventCard({
   const isParticipating = event.user_participation.is_participating;
 
   return (
-    <Card className="border-border/50 hover:shadow-md transition-shadow">
+    <Card 
+      className="border-border/50 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => navigate(`/games/${event.id}`)}
+    >
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between">
+          <Link to={`/games/${event.id}`} className="flex items-center gap-3 group" onClick={(e) => e.stopPropagation()}>
             <Avatar className="h-10 w-10">
               <AvatarImage 
                 src={event.organiser.avatar ? 
@@ -72,16 +81,18 @@ export function GameEventCard({
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold text-lg">{event.title}</h3>
+              <h3 className="font-semibold text-lg group-hover:underline">
+                  {event.title}
+              </h3>
               <p className="text-sm text-muted-foreground">
                 Organized by {event.organiser.name}
               </p>
             </div>
-          </div>
+          </Link>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -112,18 +123,22 @@ export function GameEventCard({
           <div className="flex items-center gap-1">
             <MapPin className="h-4 w-4" />
             <span>{event.location}</span>
+            {event.community && (
+              <span className="text-xs text-muted-foreground">({event.community.name})</span>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             <span>{event.starts_at_relative}</span>
           </div>
+
         </div>
 
         {event.notes && (
           <p className="text-sm text-muted-foreground">{event.notes}</p>
         )}
 
-        <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
@@ -138,12 +153,20 @@ export function GameEventCard({
             {event.venue_booked && (
               <Badge variant="outline">Venue Booked</Badge>
             )}
+            {event.distance_formatted && (
+              <Badge variant="outline" className="text-primary border-primary">
+                📍 {event.distance_formatted}
+              </Badge>
+            )}
           </div>
 
           <div className="flex gap-2">
+            <Button asChild variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+              <Link to={`/games/${event.id}`}>View details</Link>
+            </Button>
             {canJoin && !isParticipating && (
               <Button 
-                onClick={handleJoin} 
+                onClick={(e) => handleJoin(e)} 
                 disabled={isJoining}
                 size="sm"
               >
@@ -159,7 +182,7 @@ export function GameEventCard({
             )}
             {isParticipating && (
               <Button 
-                onClick={handleLeave} 
+                onClick={(e) => handleLeave(e)} 
                 disabled={isLeaving}
                 variant="outline"
                 size="sm"

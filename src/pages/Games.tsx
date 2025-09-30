@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { GamesLoader } from '@/components/GamesLoader';
+import { useSearchParams } from 'react-router-dom';
 
 export default function Games() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,6 +25,18 @@ export default function Games() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { user, signIn } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Check if we should automatically open the create modal
+  useEffect(() => {
+    const shouldCreate = searchParams.get('create');
+    if (shouldCreate === 'true') {
+      setShowCreateModal(true);
+      // Remove the parameter from URL
+      searchParams.delete('create');
+      setSearchParams(searchParams);
+    }
+  }, [searchParams, setSearchParams]);
 
   const {
     events,
@@ -183,7 +196,7 @@ export default function Games() {
           <Button 
             onClick={() => setShowCreateModal(true)}
             disabled={isLoading}
-            className="flex items-center gap-2 w-full sm:w-auto"
+            className="flex items-center gap-2 w-full sm:w-auto rounded-full"
           >
             <Plus className="h-4 w-4" />
             Create Game

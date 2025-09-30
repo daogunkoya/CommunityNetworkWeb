@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { profileService, Profile, UpdateProfileData } from '@/services/profile';
+import { profileService, type Profile, UpdateProfileData } from '@/services/profile';
 import { Loader2, Camera, User, MapPin, Phone, Mail } from 'lucide-react';
+import AddressInput from '@/components/ui/AddressInput';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Profile() {
@@ -16,6 +17,7 @@ export default function Profile() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UpdateProfileData>({});
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user, signIn } = useAuth();
@@ -202,23 +204,16 @@ export default function Profile() {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <Avatar className="h-20 w-20 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleImageClick}>
-                  {(() => {
-                    const imageSrc = profile.profile_picture ? 
+                  <AvatarImage 
+                    src={profile.profile_picture ? 
                       (profile.profile_picture.startsWith('http') ? 
                         profile.profile_picture : 
-                        `/storage/${profile.profile_picture}?t=${Date.now()}`
-                      ) : undefined;
-                    console.log('Avatar image src:', imageSrc);
-                    return (
-                      <AvatarImage 
-                        src={imageSrc}
-                        alt={profile.full_name}
-                        onLoad={() => console.log('Avatar image loaded successfully')}
-                        onError={(e) => console.log('Avatar image failed to load:', e)}
-                        style={{ objectFit: 'cover' }}
-                      />
-                    );
-                  })()}
+                        `http://localhost:8001/storage/${profile.profile_picture}`
+                      ) : undefined
+                    }
+                    alt={profile.full_name}
+                    style={{ objectFit: 'cover' }}
+                  />
                   <AvatarFallback className="text-lg">
                     {getInitials(profile.first_name, profile.last_name)}
                   </AvatarFallback>
@@ -282,16 +277,17 @@ export default function Profile() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Address/Location
-                </Label>
-                <Input
-                  id="location"
+                <AddressInput
                   value={isEditing ? formData.location || '' : profile.location || ''}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  disabled={!isEditing}
+                  onChange={(value) => handleInputChange('location', value)}
+                  onAddressSelect={(address) => {
+                    setSelectedAddress(address);
+                    handleInputChange('location', address.formatted_address);
+                  }}
                   placeholder="Enter your address or location"
+                  label="Address/Location"
+                  disabled={!isEditing}
+                  showPostcodeSearch={true}
                 />
               </div>
 

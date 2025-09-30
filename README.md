@@ -1,63 +1,138 @@
-# Welcome to your project
+# CommunityNetworkWeb (MatchGrinder)
 
-## Project info
+A modern web application for connecting sports enthusiasts and organizing community sports events.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- 🏆 **Tournament Management** - Create and manage sports tournaments
+- 🎯 **Game Events** - Find and join local sports games
+- 💬 **Community Discussions** - Connect with fellow players
+- 📱 **Mobile Responsive** - Optimized for all devices
+- 🔐 **User Authentication** - Secure login with Google OAuth
+- 💌 **Messaging System** - Direct communication between players
 
-**Use your preferred IDE**
+## Tech Stack
 
-If you want to work locally using your own IDE, you can clone this repo and push changes.
+- **Frontend**: React 18 + TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Build Tool**: Vite
+- **Authentication**: Google OAuth
+- **State Management**: TanStack Query
+- **Routing**: React Router v6
+- **Icons**: Lucide React
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Getting Started
 
-Follow these steps:
+### Prerequisites
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- Node.js 18+ 
+- npm or yarn
+- Git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Installation
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/daogunkoya/CommunityNetworkWeb.git
+   cd CommunityNetworkWeb
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp env.example .env
+   ```
+   
+   Edit `.env` and add your actual values:
+   ```env
+   VITE_API_URL=https://your-api-domain.com/api
+   VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+   VITE_APP_NAME=MatchGrinder
+   VITE_APP_VERSION=1.0.0
+   ```
+
+4. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to `http://localhost:8080`
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── auth/           # Authentication components
+│   ├── ui/             # Base UI components (shadcn/ui)
+│   └── ...
+├── pages/              # Page components
+├── hooks/              # Custom React hooks
+├── services/           # API service functions
+├── types/              # TypeScript type definitions
+├── config/             # App configuration
+└── lib/                # Utility functions
 ```
 
-**Edit a file directly in GitHub**
+## Deployment
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Production Deployment
 
-**Use GitHub Codespaces**
+1. **Set up your deployment script**
+   ```bash
+   cp deploy-production.example.sh deploy-production.sh
+   ```
+   
+2. **Edit the deployment script** with your actual server credentials and paths
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+3. **Run the deployment**
+   ```bash
+   ./deploy-production.sh
+   ```
 
-## What technologies are used for this project?
+### Environment Variables
 
-This project is built with:
+Make sure to set up the following environment variables in production:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- `VITE_API_URL` - Your API endpoint
+- `VITE_GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `VITE_APP_NAME` - Application name
+- `VITE_APP_VERSION` - Application version
 
-## How can I deploy this project?
+## Contributing
 
-Deployment instructions coming soon.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Can I connect a custom domain to my project?
+## Security
 
-Yes, you can!
+This repository has been configured to exclude sensitive information:
 
-To connect a domain, navigate to your hosting provider’s settings and follow their instructions for connecting a custom
+- Environment files (`.env*`) are gitignored
+- Deployment scripts with credentials are gitignored
+- API keys and secrets should never be committed
+
+Always use environment variables for sensitive configuration.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+If you have any questions or need help, please open an issue on GitHub.

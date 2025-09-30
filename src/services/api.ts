@@ -1,28 +1,22 @@
-import axios from 'axios';
-import { API_CONFIG } from '@/config/api';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-// Create axios instance with base configuration
-const api = axios.create({
-  baseURL: API_CONFIG.BASE_URL,
-  timeout: API_CONFIG.TIMEOUT,
+// Create axios instance
+const api: AxiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
-// Add request interceptor to include auth token
+// Request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
+  (config: AxiosRequestConfig) => {
     const token = localStorage.getItem('auth_token');
-    if (token) {
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // Don't override Content-Type for FormData
-    if (config.data instanceof FormData) {
-      delete config.headers['Content-Type'];
-    }
-    
     return config;
   },
   (error) => {
@@ -30,18 +24,24 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Response interceptor to handle common errors
 api.interceptors.response.use(
-  (response) => response,
+  (response: AxiosResponse) => {
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid, logout user
+      // Token expired or invalid
       localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      window.location.href = '/auth';
+      localStorage.removeItem('user');
+      
+      // Only redirect if we're not already on the signin page
+      if (window.location.pathname !== '/signin') {
+        window.location.href = '/signin';
+      }
     }
     return Promise.reject(error);
   }
 );
 
-export default api; 
+export { api }; 

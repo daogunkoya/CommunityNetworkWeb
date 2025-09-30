@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 248 250 252;
+    --background: 255 255 255;
     --foreground: 215 25% 27%;
 
     --card: 255 255 255;
@@ -23,7 +23,7 @@ All colors MUST be HSL.
     --secondary: 262 83% 95%;
     --secondary-foreground: 262 83% 20%;
 
-    --muted: 248 250 252;
+    --muted: 255 255 255;
     --muted-foreground: 215 16% 47%;
 
     --accent: 142 76% 36%;
@@ -115,4 +115,28 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Neutral, subtle scrollbar styling for horizontal scrollers */
+.scrollbar-neutral {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: hsl(var(--border)) transparent; /* thumb track */
+}
+
+.scrollbar-neutral::-webkit-scrollbar {
+  height: 8px; /* horizontal scrollbar height */
+}
+
+.scrollbar-neutral::-webkit-scrollbar-track {
+  background-color: hsl(var(--muted));
+  border-radius: 9999px;
+}
+
+.scrollbar-neutral::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 9999px;
+}
+
+.scrollbar-neutral:hover::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.35);
 }
