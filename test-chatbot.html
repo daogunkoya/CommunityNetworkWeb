@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatchGrinder - Chatbot Test</title>
+</head>
+<body>
+    <h1>MatchGrinder Chatbot Test Page</h1>
+    <p>If the Lindy AI chatbot is working, you should see a chat icon in the bottom-right corner.</p>
+    
+    <!-- Lindy AI Customer Service Chatbot -->
+    <script async src="https://api.lindy.ai/api/lindyEmbed/lindyEmbed.js?a=cfcd6689-55b8-4968-94d2-c7c2afee49fa"></script>
+    
+    <script>
+        // Check if the script loaded
+        window.addEventListener('load', function() {
+            console.log('Page loaded, checking for Lindy AI...');
+            
+            // Wait a bit for the script to load
+            setTimeout(function() {
+                console.log('Checking for Lindy AI elements...');
+                const lindyElements = document.querySelectorAll('[data-lindy], [id*="lindy"], [class*="lindy"]');
+                console.log('Found Lindy elements:', lindyElements.length);
+                
+                if (lindyElements.length > 0) {
+                    console.log('✅ Lindy AI chatbot found!');
+                } else {
+                    console.log('❌ Lindy AI chatbot not found');
+                }
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
