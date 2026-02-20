@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gameService, GameEvent, CreateGameEventData, UpdateGameEventData, GameEventFilters, GameEventStats } from '@/services/games';
 import { useToast } from '@/hooks/use-toast';
 
-export const useGames = (filters?: GameEventFilters) => {
+export const useGames = (filters?: GameEventFilters, useUserInterests: boolean = false) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -29,17 +29,18 @@ export const useGames = (filters?: GameEventFilters) => {
     total: 0,
   };
 
-  // Query for sport stats (public endpoint)
+  // Query for sport stats (public or user-specific endpoint)
   const {
     data: sportStats,
     isLoading: isLoadingSportStats,
     error: sportStatsError,
   } = useQuery({
-    queryKey: ['sport-stats'],
-    queryFn: () => gameService.getSportStats(),
+    queryKey: ['sport-stats', useUserInterests ? 'user-interests' : 'all'],
+    queryFn: () => useUserInterests ? gameService.getUserSportStats() : gameService.getSportStats(),
     staleTime: 10 * 60 * 1000, // 10 minutes
     retry: 1,
     retryDelay: 1000,
+    enabled: true, // Always enabled, but different endpoint based on useUserInterests
   });
 
   // Create game event mutation

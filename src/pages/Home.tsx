@@ -4,10 +4,12 @@ import { Plus, TrendingUp, Users, Calendar, MapPin, Clock, Star, Zap, Target, Tr
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import sportsHero from '@/assets/sports-hero.jpg';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useDashboardContent } from '@/hooks/useDashboardContent';
 import { dashboardService } from '@/services/dashboard';
 import { getAppName, getAppDescription } from '@/config/app';
 
@@ -123,6 +125,19 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const navigate = useNavigate();
   const { stats, isLoading: isLoadingStats, error: statsError } = useDashboardStats();
+  
+  // NEW: Use dynamic dashboard content
+  const {
+    recentActivity,
+    recommendedGames,
+    relevantTournaments,
+    userInterests,
+    interestNames,
+    activityMeta,
+    isLoading: isLoadingContent,
+    error: contentError,
+    refreshActivity,
+  } = useDashboardContent();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -198,7 +213,7 @@ export default function Home() {
                 <span className="text-sm font-medium">{timeString}</span>
               </div>
             </div>
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+            <h1 className="text-5xl font-bold mb-4 text-white">
               Welcome to {getAppName()}
             </h1>
             <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
@@ -232,7 +247,7 @@ export default function Home() {
           {quickActions.map((action, index) => (
             <Card 
               key={index} 
-              className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg cursor-pointer bg-white/90 backdrop-blur-sm"
+              className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg cursor-pointer bg-white"
               onClick={() => handleActionClick(action.href)}
             >
               <CardContent className="p-6 text-center">
@@ -251,7 +266,7 @@ export default function Home() {
       <div className="px-6 mb-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {statsData.map((stat, index) => (
-            <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/90 backdrop-blur-sm">
+            <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white">
               <CardContent className="p-6 text-center">
                 <div className={`w-12 h-12 ${stat.bgColor} rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg`}>
                   <stat.icon className={`h-6 w-6 ${stat.color}`} />
@@ -265,18 +280,40 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Recent Games */}
+      {/* Recent Games - NOW DYNAMIC */}
       <div className="px-6 mb-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Recent Games</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Recommended for You</h2>
+            {interestNames.length > 0 && (
+              <p className="text-sm text-gray-500 mt-1">
+                Based on your interests: {interestNames.join(', ')}
+              </p>
+            )}
+          </div>
           <Button variant="outline" onClick={() => navigate('/games')} className="rounded-full">
             <Gamepad2 className="h-4 w-4 mr-2" />
             View All Games
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recentGames.map((game) => (
+        {isLoadingContent ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="border-0 shadow-lg">
+                <CardContent className="p-6 space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : recommendedGames.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recommendedGames.map((game) => (
             <Card 
               key={game.id} 
               className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group"
@@ -322,10 +359,20 @@ export default function Home() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        ) : (
+          <Card className="p-8 text-center border-0 shadow-lg">
+            <p className="text-gray-500 mb-4">
+              No games match your interests yet. 
+            </p>
+            <Button variant="outline" onClick={() => navigate('/profile')}>
+              Update Your Sports Preferences
+            </Button>
+          </Card>
+        )}
       </div>
 
-      {/* Recent Tournaments */}
+      {/* Recent Tournaments - NOW DYNAMIC */}
       <div className="px-6 mb-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Active Tournaments</h2>
@@ -335,8 +382,22 @@ export default function Home() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {recentTournaments.map((tournament) => (
+        {isLoadingContent ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <Card key={i} className="border-0 shadow-lg">
+                <CardContent className="p-6 space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : relevantTournaments.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {relevantTournaments.map((tournament) => (
             <Card 
               key={tournament.id} 
               className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group bg-white/90 backdrop-blur-sm"
@@ -384,13 +445,23 @@ export default function Home() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        ) : (
+          <Card className="p-8 text-center border-0 shadow-lg">
+            <p className="text-gray-500">No tournaments match your interests at the moment.</p>
+          </Card>
+        )}
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity - NOW DYNAMIC */}
       <div className="px-6 pb-20">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Recent Activity</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Recent Activity</h2>
+            {activityMeta && activityMeta.filtered && (
+              <p className="text-sm text-gray-500 mt-1">{activityMeta.message}</p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button 
               variant="outline" 
@@ -403,18 +474,66 @@ export default function Home() {
             <Button 
               variant="ghost" 
               className="rounded-full hover:bg-gray-500/10 transition-colors"
-              onClick={() => navigate('/discussion')}
+              onClick={refreshActivity}
             >
-              View All Posts
+              Refresh
             </Button>
           </div>
         </div>
 
-        <div className="space-y-4">
-          {mockPosts.map((post) => (
-            <PostCard key={post.id} {...post} />
-          ))}
-        </div>
+        {isLoadingContent ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="border-0 shadow-lg">
+                <CardContent className="p-6 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-1/4" />
+                      <Skeleton className="h-3 w-1/6" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : recentActivity.length > 0 ? (
+          <div className="space-y-4">
+            {recentActivity.map((post) => (
+              <PostCard 
+                key={post.id} 
+                id={post.id}
+                author={post.author.name}
+                avatar={post.author.avatar}
+                time={new Date(post.created_at).toLocaleString()}
+                content={post.content}
+                type={post.type === 'game' ? 'game' : 'discussion'}
+                sport={post.sport}
+                location={post.location}
+                date={post.date}
+                likes={post.likes}
+                comments={post.comments}
+                isLiked={post.is_liked}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card className="p-8 text-center border-0 shadow-lg">
+            <p className="text-gray-500 mb-4">
+              No recent activity. {!activityMeta?.filtered && "Set your sport interests to see personalized content!"}
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => navigate('/games')}>
+                Find Games
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/profile')}>
+                Update Interests
+              </Button>
+            </div>
+          </Card>
+        )}
       </div>
 
       <style>{`

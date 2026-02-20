@@ -10,6 +10,8 @@ import { profileService, type Profile, UpdateProfileData } from '@/services/prof
 import { Loader2, Camera, User, MapPin, Phone, Mail } from 'lucide-react';
 import AddressInput from '@/components/ui/AddressInput';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getStorageUrlSafe } from '@/utils/storage';
+import SportInterests from '@/components/SportInterests';
 
 export default function Profile() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -22,10 +24,43 @@ export default function Profile() {
   const { toast } = useToast();
   const { user, signIn } = useAuth();
 
+  // Suppress external widget errors (Lindy AI, etc.)
+  useEffect(() => {
+    const originalConsoleError = console.error;
+    const errorFilter = (message: string) => {
+      // Filter out external widget errors that don't affect our app
+      if (
+        message.includes('RelayNetwork') ||
+        message.includes('AppInitializersQuery') ||
+        message.includes('_app-99e55cd6713a1e28.js')
+      ) {
+        // These are external widget errors, we can ignore them
+        return true;
+      }
+      return false;
+    };
+
+    // Only suppress if it's an external widget error
+    console.error = (...args: any[]) => {
+      const message = args.join(' ');
+      if (!errorFilter(message)) {
+        originalConsoleError.apply(console, args);
+      }
+    };
+
+    return () => {
+      console.error = originalConsoleError;
+    };
+  }, []);
+
   // Load profile on component mount
   useEffect(() => {
-    loadProfile();
-  }, []);
+    if (user) {
+      loadProfile();
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const loadProfile = async () => {
     try {
@@ -37,8 +72,26 @@ export default function Profile() {
         location: profileData.location || '',
         phone: profileData.phone || '',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Profile load error:', error);
+      
+      // Handle 401 Unauthorized errors
+      if (error?.response?.status === 401 || error?.message?.includes('Unauthorized')) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Your session has expired. Please log in again.',
+          variant: 'destructive',
+        });
+        // Clear invalid auth data
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        // Redirect to signin after a short delay
+        setTimeout(() => {
+          window.location.href = '/signin';
+        }, 2000);
+        return;
+      }
+      
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to load profile',
@@ -115,8 +168,8 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Card className="w-full max-w-md bg-white">
           <CardHeader>
             <CardTitle className="text-center">Login Required</CardTitle>
           </CardHeader>
@@ -135,7 +188,7 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen bg-white p-4">
         <div className="max-w-2xl mx-auto space-y-6">
           <Skeleton className="h-8 w-48" />
           <Card>
@@ -165,8 +218,8 @@ export default function Profile() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Card className="w-full max-w-md bg-white">
           <CardHeader>
             <CardTitle className="text-center">Profile Not Found</CardTitle>
           </CardHeader>
@@ -208,7 +261,7 @@ export default function Profile() {
                     src={profile.profile_picture ? 
                       (profile.profile_picture.startsWith('http') ? 
                         profile.profile_picture : 
-                        `http://localhost:8001/storage/${profile.profile_picture}`
+                        getStorageUrlSafe(profile.profile_picture)
                       ) : undefined
                     }
                     alt={profile.full_name}
@@ -256,7 +309,7 @@ export default function Profile() {
                   id="first_name"
                   value={profile.first_name}
                   disabled
-                  className="bg-muted"
+                  className="bg-gray-50"
                 />
                 <p className="text-xs text-muted-foreground">
                   First name cannot be changed
@@ -269,7 +322,7 @@ export default function Profile() {
                   id="last_name"
                   value={profile.last_name}
                   disabled
-                  className="bg-muted"
+                  className="bg-gray-50"
                 />
                 <p className="text-xs text-muted-foreground">
                   Last name cannot be changed
@@ -370,6 +423,9 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Sport Interests Section */}
+        <SportInterests />
       </div>
     </div>
   );

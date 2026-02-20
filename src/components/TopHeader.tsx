@@ -62,8 +62,8 @@ export function TopHeader() {
 
   const handleNotificationClick = (notification: any) => {
     // Mark notification as read
-    setNotifications(prev => 
-      prev.map(n => 
+    setNotifications(prev =>
+      prev.map(n =>
         n.id === notification.id ? { ...n, read: true } : n
       )
     );
@@ -86,10 +86,10 @@ export function TopHeader() {
 
   const handleMarkAllAsRead = () => {
     // Mark all notifications as read
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(n => ({ ...n, read: true }))
     );
-    
+
     toast({
       title: "Notifications marked as read",
       description: "All notifications have been marked as read."
@@ -124,16 +124,60 @@ export function TopHeader() {
                 size="sm"
                 onClick={() => navigate(item.href)}
                 className={cn(
-                  "flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                  "relative flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 ease-out group overflow-hidden",
                   location.pathname === item.href
-                    ? "text-blue-600 bg-blue-50 border border-blue-100 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    ? "text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transform hover:scale-105"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80 hover:backdrop-blur-sm border border-transparent hover:border-slate-200/50 hover:shadow-sm"
                 )}
               >
-                <item.icon className="h-4 w-4" />
-                <span>{item.name}</span>
+                {/* Active state background animation */}
+                {location.pathname === item.href && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-90 animate-pulse-slow" />
+                )}
+
+                {/* Content with relative positioning */}
+                <div className="relative flex items-center space-x-2">
+                  <item.icon className={cn(
+                    "h-4 w-4 transition-all duration-300",
+                    location.pathname === item.href
+                      ? "text-white drop-shadow-sm"
+                      : "text-slate-500 group-hover:text-slate-700"
+                  )} />
+                  <span className={cn(
+                    "font-medium tracking-wide transition-all duration-300",
+                    location.pathname === item.href
+                      ? "text-white drop-shadow-sm"
+                      : "text-slate-600 group-hover:text-slate-900"
+                  )}>
+                    {item.name}
+                  </span>
+                </div>
               </Button>
             ))}
+
+            {/* Admin Dynamic Navigation Item */}
+            {(user as any)?.role === 'admin' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/admin/reports')}
+                className={cn(
+                  "relative flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 ease-out group overflow-hidden ml-2 border border-red-200/50 bg-red-50/50 hover:bg-red-100/50 hover:border-red-300/50",
+                  location.pathname === '/admin/reports'
+                    ? "text-white bg-gradient-to-r from-red-500 to-red-600 shadow-lg shadow-red-500/25 transform scale-105 border-0"
+                    : "text-red-700 hover:text-red-800"
+                )}
+              >
+                <div className="relative flex items-center space-x-2">
+                  <span className={cn(
+                    "font-bold tracking-wide transition-all duration-300 flex items-center gap-1",
+                    location.pathname === '/admin/reports' ? "text-white drop-shadow-sm" : "group-hover:text-red-900"
+                  )}>
+                    <CheckCircle className="w-4 h-4" /> Reports
+                  </span>
+                </div>
+              </Button>
+            )}
           </nav>
 
           {/* Right Side Actions */}
@@ -141,9 +185,9 @@ export function TopHeader() {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="relative w-10 h-10 rounded-xl hover:bg-gray-50"
                   >
                     <Bell className="h-5 w-5 text-gray-600" />
@@ -170,9 +214,8 @@ export function TopHeader() {
                         <div
                           key={notification.id}
                           onClick={() => handleNotificationClick(notification)}
-                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                            !notification.read ? 'bg-blue-50' : ''
-                          }`}
+                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${!notification.read ? 'bg-blue-50' : ''
+                            }`}
                         >
                           <div className="flex items-start space-x-3">
                             <div className="flex-shrink-0">
@@ -208,9 +251,9 @@ export function TopHeader() {
                     </div>
                   )}
                   <div className="px-4 py-2 border-t border-gray-100">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="w-full text-xs"
                       onClick={handleMarkAllAsRead}
                     >
@@ -220,11 +263,11 @@ export function TopHeader() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="w-10 h-10 rounded-xl hover:bg-gray-50"
                 >
@@ -280,14 +323,34 @@ export function TopHeader() {
               size="sm"
               onClick={() => navigate(item.href)}
               className={cn(
-                "flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200",
+                "relative flex flex-col items-center space-y-1 px-4 py-3 rounded-2xl text-xs font-medium transition-all duration-300 ease-out group overflow-hidden min-w-[70px]",
                 location.pathname === item.href
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  ? "text-white bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 shadow-lg shadow-emerald-500/25 transform scale-105"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50/80 hover:backdrop-blur-sm border border-transparent hover:border-slate-200/50"
               )}
             >
-              <item.icon className="h-4 w-4" />
-              <span>{item.name}</span>
+              {/* Active state background animation */}
+              {location.pathname === item.href && (
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 opacity-90" />
+              )}
+
+              {/* Content with relative positioning */}
+              <div className="relative flex flex-col items-center space-y-1">
+                <item.icon className={cn(
+                  "h-5 w-5 transition-all duration-300",
+                  location.pathname === item.href
+                    ? "text-white drop-shadow-sm"
+                    : "text-slate-500 group-hover:text-slate-700"
+                )} />
+                <span className={cn(
+                  "font-medium tracking-wide transition-all duration-300 text-center leading-tight",
+                  location.pathname === item.href
+                    ? "text-white drop-shadow-sm"
+                    : "text-slate-600 group-hover:text-slate-900"
+                )}>
+                  {item.name}
+                </span>
+              </div>
             </Button>
           ))}
         </div>

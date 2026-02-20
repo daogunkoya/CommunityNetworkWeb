@@ -6,21 +6,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { discussionsService, CreateDiscussionData } from '@/services/discussions';
-import { gameTypesService, GameType } from '@/services/gameTypes';
+import discussionsService, { CreateDiscussionData } from '@/services/discussions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface GameType {
+  id: number;
+  name: string;
+  color: string;
+  icon_path: string;
+}
 
 interface CreateDiscussionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  gameEventId?: number; // Optional game event ID for game-specific discussions
 }
 
-export function CreateDiscussionModal({ isOpen, onClose, onSuccess }: CreateDiscussionModalProps) {
+export function CreateDiscussionModal({ isOpen, onClose, onSuccess, gameEventId }: CreateDiscussionModalProps) {
   const [formData, setFormData] = useState<CreateDiscussionData>({
     title: '',
     body: '',
-    game_type_id: undefined
+    game_type_id: undefined,
+    game_event_id: gameEventId
   });
   const [gameTypes, setGameTypes] = useState<GameType[]>([]);
   const [isLoadingGameTypes, setIsLoadingGameTypes] = useState(false);
@@ -33,14 +41,22 @@ export function CreateDiscussionModal({ isOpen, onClose, onSuccess }: CreateDisc
     }
   }, [isOpen]);
 
+  // Update gameEventId when prop changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      game_event_id: gameEventId
+    }));
+  }, [gameEventId]);
+
   const loadGameTypes = async () => {
     setIsLoadingGameTypes(true);
     try {
-      const response = await gameTypeService.getGameTypes();
+      const response = await discussionsService.getAvailableGameTypes();
       setGameTypes(response.data);
     } catch (error) {
-      console.error('Failed to load game types:', error);
-      toast.error('Failed to load game types');
+      console.error('Failed to load available game types:', error);
+      toast.error('Failed to load available game types');
     } finally {
       setIsLoadingGameTypes(false);
     }
@@ -56,9 +72,9 @@ export function CreateDiscussionModal({ isOpen, onClose, onSuccess }: CreateDisc
 
     setIsSubmitting(true);
     try {
-      await discussionService.createDiscussion(formData);
+      await discussionsService.createDiscussion(formData);
       toast.success('Discussion created successfully!');
-      setFormData({ title: '', body: '', game_type_id: undefined });
+      setFormData({ title: '', body: '', game_type_id: undefined, game_event_id: gameEventId });
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -80,7 +96,7 @@ export function CreateDiscussionModal({ isOpen, onClose, onSuccess }: CreateDisc
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>Start New Discussion</span>
+            <span>{gameEventId ? 'Start Game Discussion' : 'Start New Discussion'}</span>
             <Button
               variant="ghost"
               size="icon"
@@ -116,22 +132,42 @@ export function CreateDiscussionModal({ isOpen, onClose, onSuccess }: CreateDisc
               disabled={isSubmitting || isLoadingGameTypes}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select a sport/game type (optional)" />
+                <SelectValue placeholder={isLoadingGameTypes ? "Loading your sports..." : "Select a sport from your interests (optional)"} />
               </SelectTrigger>
               <SelectContent>
-                {gameTypes.map((gameType) => (
-                  <SelectItem key={gameType.id} value={gameType.id.toString()}>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: gameType.color }}
-                      />
-                      {gameType.name}
-                    </div>
+                {isLoadingGameTypes ? (
+                  <SelectItem value="loading" disabled>
+                    Loading your sports...
                   </SelectItem>
-                ))}
+                ) : gameTypes.length > 0 ? (
+                  gameTypes.map((gameType) => (
+                    <SelectItem key={gameType.id} value={gameType.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: gameType.color }}
+                        />
+                        {gameType.name}
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-interests" disabled>
+                    Set your interests to see sports
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
+            {gameTypes.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Showing {gameTypes.length} sport(s) from your interests
+              </p>
+            )}
+            {gameTypes.length === 0 && !isLoadingGameTypes && (
+              <p className="text-xs text-amber-600">
+                No sports available. Set your interests in your profile to see relevant sports.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

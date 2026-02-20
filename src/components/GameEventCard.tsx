@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, MapPin, Calendar, Users, Trophy, Edit, Trash2, Loader2, Navigation } from 'lucide-react';
+import { MoreHorizontal, MapPin, Calendar, Users, Trophy, Edit, Trash2, Loader2, Navigation, MessageCircle } from 'lucide-react';
 import { GameEvent } from '@/services/games';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
+import { getStorageUrlSafe } from '@/utils/storage';
 
 interface GameEventCardProps {
   event: GameEvent;
@@ -55,6 +56,11 @@ export function GameEventCard({
     }
   };
 
+  const handleComment = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    navigate(`/games/${event.id}`);
+  };
+
   const isOrganizer = event.organiser.id === 1; // Assuming current user ID is 1
   const canJoin = event.user_participation.can_join;
   const isParticipating = event.user_participation.is_participating;
@@ -72,7 +78,7 @@ export function GameEventCard({
                 src={event.organiser.avatar ? 
                   (event.organiser.avatar.startsWith('http') ? 
                     event.organiser.avatar : 
-                    `http://localhost:8001/storage/${event.organiser.avatar}`
+                    getStorageUrlSafe(event.organiser.avatar)
                   ) : undefined
                 } 
               />
@@ -164,6 +170,15 @@ export function GameEventCard({
             <Button asChild variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
               <Link to={`/games/${event.id}`}>View details</Link>
             </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleComment}
+              className="flex items-center gap-1"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Discuss
+            </Button>
             {canJoin && !isParticipating && (
               <Button 
                 onClick={(e) => handleJoin(e)} 
@@ -200,28 +215,28 @@ export function GameEventCard({
           </div>
         </div>
 
-        {event.participants.length > 0 && (
+        {(event.participants?.length ?? 0) > 0 && (
           <div className="pt-2 border-t">
             <p className="text-sm text-muted-foreground mb-2">Participants:</p>
             <div className="flex flex-wrap gap-1">
-              {event.participants.slice(0, 5).map((participant) => (
+              {(event.participants ?? []).slice(0, 5).map((participant) => (
                 <Avatar key={participant.id} className="h-6 w-6">
                   <AvatarImage 
                     src={participant.avatar ? 
                       (participant.avatar.startsWith('http') ? 
                         participant.avatar : 
-                        `http://localhost:8001/storage/${participant.avatar}`
+                        getStorageUrlSafe(participant.avatar)
                       ) : undefined
                     } 
                   />
                   <AvatarFallback className="text-xs">
-                    {participant.name.split(' ').map(n => n[0]).join('')}
+                    {participant.name?.split(' ').map(n => n[0]).join('') || '??'}
                   </AvatarFallback>
                 </Avatar>
               ))}
-              {event.participants.length > 5 && (
+              {(event.participants?.length ?? 0) > 5 && (
                 <Badge variant="secondary" className="text-xs">
-                  +{event.participants.length - 5} more
+                  +{(event.participants?.length ?? 0) - 5} more
                 </Badge>
               )}
             </div>

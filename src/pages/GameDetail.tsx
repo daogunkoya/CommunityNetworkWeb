@@ -5,16 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, MapPin, Calendar, Users, Trophy } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Users, Trophy, MessageSquare, Plus } from 'lucide-react';
 import { gameService, GameEvent } from '@/services/games';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { getStorageUrlSafe } from '@/utils/storage';
+import discussionsService, { Discussion } from '@/services/discussions';
+import { PostCard } from '@/components/PostCard';
+import { CreateDiscussionModal } from '@/components/CreateDiscussionModal';
+import { useState } from 'react';
 
 export default function GameDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const {
     data: event,
@@ -23,6 +29,23 @@ export default function GameDetail() {
   } = useQuery<GameEvent>({
     queryKey: ['game', id],
     queryFn: () => gameService.getEvent(parseInt(id!, 10)),
+    enabled: !!id && isLoggedIn,
+  });
+
+  // Fetch discussions related to this specific game event
+  const {
+    data: discussionsResponse,
+    isLoading: isLoadingDiscussions,
+  } = useQuery({
+    queryKey: ['game-discussions', id],
+    queryFn: () => {
+      const params = {
+        game_event_id: parseInt(id!, 10), // Filter by specific game event
+        per_page: 20, // Show more discussions
+        sort: 'latest' as const,
+      };
+      return discussionsService.getDiscussions(params);
+    },
     enabled: !!id && isLoggedIn,
   });
 
@@ -102,7 +125,7 @@ export default function GameDetail() {
                   src={event.organiser.avatar ? 
                     (event.organiser.avatar.startsWith('http') ? 
                       event.organiser.avatar : 
-                      `http://localhost:8001/storage/${event.organiser.avatar}`
+                      getStorageUrlSafe(event.organiser.avatar)
                     ) : undefined
                   } 
                 />
@@ -179,11 +202,11 @@ export default function GameDetail() {
                   <div key={p.id} className="flex items-center gap-2 px-2 py-1 rounded border">
                     <Avatar className="h-6 w-6">
                       <AvatarImage 
-                        src={p.avatar ? (p.avatar.startsWith('http') ? p.avatar : `http://localhost:8001/storage/${p.avatar}`) : undefined}
+                        src={p.avatar ? (p.avatar.startsWith('http') ? p.avatar : getStorageUrlSafe(p.avatar)) : undefined}
                       />
-                      <AvatarFallback className="text-xs">{p.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarFallback className="text-xs">{p.name?.split(' ').map(n => n[0]).join('') || '??'}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm">{p.name}</span>
+                    <span className="text-sm">{p.name || 'Unknown'}</span>
                     {p.is_waiting && <Badge variant="secondary">Waiting</Badge>}
                   </div>
                 ))}
@@ -192,6 +215,117 @@ export default function GameDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Discussions Section */}
+      <Card className="border-border/50 mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Game Discussions</CardTitle>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/discussion')}
+              >
+                Browse All Discussions
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Start Discussion
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoadingDiscussions ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : Array.isArray(discussionsResponse?.data) && discussionsResponse.data.length > 0 ? (
+            <div className="space-y-4">
+              {/* Show info about filtering */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm text-blue-800">
+                    Showing {discussionsResponse.data.length} discussion{discussionsResponse.data.length !== 1 ? 's' : ''} for this game event
+                  </span>
+                </div>
+              </div>
+              
+              {discussionsResponse.data.slice(0, 5).map((discussion: any) => (
+                <PostCard
+                  key={discussion.id}
+                  id={discussion.id}
+                  author={discussion.author.name}
+                  avatar={discussion.author.avatar}
+                  time={discussion.created_at_relative}
+                  content={discussion.excerpt}
+                  type="discussion"
+                  likes={discussion.stats.likes_count}
+                  comments={discussion.stats.comments_count}
+                  isLiked={discussion.user_interaction.is_liked}
+                  discussion={discussion}
+                />
+              ))}
+              {Array.isArray(discussionsResponse?.data) && discussionsResponse.data.length > 5 && (
+                <div className="text-center pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/discussion')}
+                  >
+                    View {discussionsResponse.data.length - 5} more discussions
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-semibold mb-2">No discussions yet</h3>
+              <p className="text-sm mb-4">
+                Be the first to start a discussion about this game event!
+              </p>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Start Discussion
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/discussion')}>
+                  Browse All Discussions
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create Discussion Modal */}
+      <CreateDiscussionModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['game-discussions'] });
+        }}
+        gameEventId={parseInt(id!, 10)}
+      />
     </div>
   );
 }

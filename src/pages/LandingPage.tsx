@@ -39,7 +39,7 @@ const LandingPage = () => {
       description: "Connect with sports enthusiasts in your area. Find players of all skill levels for your favorite games."
     },
     {
-      icon: <Trophy className="h-8 w-8 text-amber-500" />,
+      icon: <Trophy className="h-8 w-8 text-orange-500" />,
       title: "Join Tournaments",
       description: "Compete in local tournaments and leagues. Track your progress and climb the leaderboards."
     },
@@ -170,7 +170,7 @@ const LandingPage = () => {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
                 <CardHeader className="text-center">
                   <div className="mx-auto mb-4 p-3 bg-slate-100 rounded-full w-fit">
                     {feature.icon}
@@ -230,7 +230,7 @@ const LandingPage = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {['Tennis', 'Basketball', 'Football', 'Badminton', 'Table Tennis', 'Volleyball'].map((sport, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-all duration-300 cursor-pointer group">
+              <Card key={index} className="text-center hover:shadow-lg transition-all duration-300 cursor-pointer group bg-white">
                 <CardContent className="p-6">
                   <div className="w-16 h-16 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:from-blue-200 group-hover:to-purple-200 transition-all duration-300">
                     <Target className="h-8 w-8 text-blue-600" />
@@ -300,10 +300,30 @@ const LandingPage = () => {
             <div>
               <h3 className="font-semibold mb-4">Support</h3>
               <ul className="space-y-2 text-slate-400">
-                <li>Help Center</li>
-                <li>Contact Us</li>
-                <li>Privacy Policy</li>
-                <li>Terms of Service</li>
+                <li>
+                  <button 
+                    onClick={() => navigate('/contact')}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    Contact Us
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate('/privacy')}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => navigate('/terms')}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    Terms of Service
+                  </button>
+                </li>
               </ul>
             </div>
             <div>

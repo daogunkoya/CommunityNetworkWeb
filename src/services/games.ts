@@ -31,7 +31,7 @@ export interface GameEvent {
     name: string;
     avatar?: string;
   };
-  participants: Array<{
+  participants?: Array<{
     id: number;
     name: string;
     avatar?: string;
@@ -75,6 +75,7 @@ export interface GameEventFilters {
   date_to?: string;
   skill_level?: number;
   my_games_only?: boolean;
+  filter_by_interests?: string; // 'true' or 'false'
   per_page?: number;
   page?: number;
 }
@@ -92,6 +93,25 @@ export interface GameEventStats {
 }
 
 export const gameService = {
+  // Normalize game event data from API
+  normalizeGameEvent(event: any): GameEvent {
+    return {
+      ...event,
+      // Convert numeric boolean fields to actual booleans
+      venue_booked: Boolean(event.venue_booked),
+      waiting_list_enabled: Boolean(event.waiting_list_enabled),
+      is_full: Boolean(event.is_full),
+      // Ensure participants is always an array, handle null/undefined gracefully
+      participants: Array.isArray(event?.participants) ? event.participants : [],
+      // Ensure user_participation exists
+      user_participation: event.user_participation || {
+        is_participating: false,
+        is_waiting: false,
+        can_join: true
+      }
+    };
+  },
+
   // Get all game events with optional filters
   async getEvents(filters?: GameEventFilters): Promise<{ data: GameEvent[]; pagination: any }> {
     try {
@@ -110,9 +130,14 @@ export const gameService = {
       }
 
       const response = await api.get(`/events?${params.toString()}`);
+      
+      // Normalize all events data - ensure data is always an array
+      const eventsData = Array.isArray(response?.data?.data) ? response.data.data : [];
+      const normalizedData = eventsData.map((event: any) => this.normalizeGameEvent(event));
+      
       return {
-        data: response.data.data,
-        pagination: response.data.pagination
+        data: normalizedData,
+        pagination: response?.data?.pagination || {}
       };
     } catch (error: any) {
       if (error.response?.data?.message) {
@@ -126,7 +151,8 @@ export const gameService = {
   async getEvent(id: number): Promise<GameEvent> {
     try {
       const response = await api.get(`/events/${id}`);
-      return response.data.data;
+      // Normalize single event data
+      return this.normalizeGameEvent(response.data.data);
     } catch (error: any) {
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
@@ -139,7 +165,8 @@ export const gameService = {
   async createEvent(data: CreateGameEventData): Promise<GameEvent> {
     try {
       const response = await api.post('/events', data);
-      return response.data.data;
+      // Normalize created event data
+      return this.normalizeGameEvent(response.data.data);
     } catch (error: any) {
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
@@ -152,7 +179,8 @@ export const gameService = {
   async updateEvent(id: number, data: UpdateGameEventData): Promise<GameEvent> {
     try {
       const response = await api.put(`/events/${id}`, data);
-      return response.data.data;
+      // Normalize updated event data
+      return this.normalizeGameEvent(response.data.data);
     } catch (error: any) {
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
@@ -229,6 +257,41 @@ export const gameService = {
         throw new Error(error.response.data.message);
       }
       throw new Error('Failed to fetch sport statistics');
+    }
+  },
+
+  // Get user-specific sport statistics (filtered by interests)
+  async getUserSportStats(): Promise<Array<{ name: string; count: number; color: string }>> {
+    try {
+      const response = await api.get('/sport-stats/user-interests');
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to fetch user sport statistics');
+    }
+  },
+
+  // Get available game types for games (user's interests only)
+  async getAvailableGameTypes(): Promise<{ success: boolean; data: Array<{ id: number; name: string; color: string; icon_path: string }>; message: string }> {
+    try {
+      const response = await api.get('/discussions/available-game-types');
+      // Ensure data is always an array
+      const responseData = response?.data || {};
+      return {
+        ...responseData,
+        data: Array.isArray(responseData.data) ? responseData.data : [],
+        success: responseData.success !== undefined ? responseData.success : true
+      };
+    } catch (error: any) {
+      console.error('Error fetching available game types:', error);
+      // Return safe default instead of throwing
+      return {
+        success: false,
+        data: [],
+        message: error.response?.data?.message || 'Failed to fetch available game types'
+      };
     }
   },
 }; 

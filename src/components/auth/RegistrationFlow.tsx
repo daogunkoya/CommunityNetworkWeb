@@ -96,6 +96,7 @@ export function RegistrationFlow() {
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
+  const [isLoadingGoogleData, setIsLoadingGoogleData] = useState(false);
   const [data, setData] = useState<RegistrationData>({
     fullName: '',
     dateOfBirth: '',
@@ -116,7 +117,10 @@ export function RegistrationFlow() {
     const source = urlParams.get('source');
     
     if (source === 'google') {
+      setIsLoadingGoogleData(true);
+      
       const googleUserData = sessionStorage.getItem('google_user_data');
+      
       if (googleUserData) {
         try {
           const googleData = JSON.parse(googleUserData);
@@ -144,10 +148,22 @@ export function RegistrationFlow() {
           toast.success('Google data loaded! Please complete your registration.');
         } catch (error) {
           console.error('Error parsing Google user data:', error);
+          toast.error('Failed to load Google authentication data. Please try signing in again.');
+          navigate('/signin');
+        } finally {
+          setIsLoadingGoogleData(false);
         }
+      } else {
+        // No Google data found, redirect back to signin
+        console.warn('No Google user data found in storage');
+        toast.error('Google authentication data not found. Please try signing in again.');
+        navigate('/signin');
+        setIsLoadingGoogleData(false);
       }
+    } else {
+      setIsLoadingGoogleData(false);
     }
-  }, []);
+  }, [navigate]);
 
   const steps = [
     { title: 'Welcome', description: 'Get started with MatchGrinder' },
@@ -236,6 +252,21 @@ export function RegistrationFlow() {
         return null;
     }
   };
+
+  // Show loading state while processing Google authentication data
+  if (isLoadingGoogleData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Processing Google Authentication</h3>
+            <p className="text-sm text-gray-600 text-center">Please wait while we load your account information...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

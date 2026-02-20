@@ -56,6 +56,7 @@ export interface CreateDiscussionData {
   title: string;
   body: string;
   game_type_id?: number;
+  game_event_id?: number; // Associate discussion with specific game event
 }
 
 export interface CreateCommentData {
@@ -69,6 +70,7 @@ export interface DiscussionFilters {
   per_page?: number;
   page?: number;
   game_type?: string;
+  game_event_id?: number; // Filter by specific game event
   my_discussions_only?: boolean;
   date_from?: string;
   date_to?: string;
@@ -82,6 +84,15 @@ export interface DiscussionsResponse {
     last_page: number;
     per_page: number;
     total: number;
+  };
+  meta?: {
+    filtered_by_interests: boolean;
+    user_interests: {
+      names: string[];
+      count: number;
+      has_interests: boolean;
+    };
+    message: string;
   };
 }
 
@@ -223,6 +234,19 @@ class DiscussionService {
     } catch (error: any) {
       console.error('Error fetching trending topics:', error);
       throw new Error(error.response?.data?.message || 'Failed to fetch trending topics');
+    }
+  }
+
+  /**
+   * Get available game types for discussions (user's interests only)
+   */
+  async getAvailableGameTypes(): Promise<{ success: boolean; data: GameType[]; message: string }> {
+    try {
+      const response = await api.get('/discussions/available-game-types');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching available game types:', error);
+      throw new Error(error.response?.data?.message || 'Failed to fetch available game types');
     }
   }
 

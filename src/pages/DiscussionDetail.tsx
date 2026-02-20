@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, MessageCircle } from 'lucide-react';
-import { discussionsService, Discussion as DiscussionDetailType } from '@/services/discussions';
+import discussionsService, { Discussion as DiscussionDetailType } from '@/services/discussions';
 import { CommentModal } from '@/components/CommentModal';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -18,7 +18,7 @@ export default function DiscussionDetail() {
 
   const { data, isLoading, error } = useQuery<{ success: boolean; data: DiscussionDetailType }>({
     queryKey: ['discussion', id],
-    queryFn: () => discussionService.getDiscussion(parseInt(id!, 10)),
+    queryFn: () => discussionsService.getDiscussion(parseInt(id!, 10)),
     enabled: !!id && isLoggedIn,
   });
 

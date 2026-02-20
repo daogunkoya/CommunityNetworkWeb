@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import discussionService, { Discussion, DiscussionFilters } from '@/services/discussions';
+import discussionsService, { Discussion, DiscussionFilters } from '@/services/discussions';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { CreateDiscussionModal } from '@/components/CreateDiscussionModal';
@@ -24,6 +24,10 @@ export default function Discussion() {
   const [selectedDateRange, setSelectedDateRange] = useState<string>('all');
   const [showMyDiscussionsOnly, setShowMyDiscussionsOnly] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showAllSports, setShowAllSports] = useState(false);
+  const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [isFilteredByInterests, setIsFilteredByInterests] = useState(false);
+  const [availableGameTypes, setAvailableGameTypes] = useState<any[]>([]);
   const topicsScrollerRef = useRef<HTMLDivElement | null>(null);
 
 
@@ -42,7 +46,7 @@ export default function Discussion() {
     error: discussionsError,
     refetch: refetchDiscussions
   } = useQuery({
-    queryKey: ['discussions', filters, selectedGameType, selectedDateRange, showMyDiscussionsOnly],
+    queryKey: ['discussions', filters, selectedGameType, selectedDateRange, showMyDiscussionsOnly, showAllSports],
     queryFn: () => {
       // Calculate proper date ranges
       let dateFrom: string | undefined;
@@ -86,11 +90,12 @@ export default function Discussion() {
         my_discussions_only: showMyDiscussionsOnly ? 'true' : undefined,
         date_from: dateFrom,
         date_to: dateTo,
+        filter_by_interests: showAllSports ? 'false' : 'true', // Filter by interests unless "Show All Sports" is enabled
       };
 
       console.log('Fetching discussions with params:', params);
 
-      return discussionService.getDiscussions(params);
+      return discussionsService.getDiscussions(params);
     },
     enabled: isLoggedIn,
   });
@@ -102,12 +107,37 @@ export default function Discussion() {
     error: topicsError
   } = useQuery({
     queryKey: ['trending-topics'],
-    queryFn: () => discussionService.getTrendingTopics(),
+    queryFn: () => discussionsService.getTrendingTopics(),
+    enabled: isLoggedIn,
+  });
+
+  // Fetch available game types (user's interests only)
+  const {
+    data: availableGameTypesResponse,
+    isLoading: isLoadingGameTypes
+  } = useQuery({
+    queryKey: ['available-game-types'],
+    queryFn: () => discussionsService.getAvailableGameTypes(),
     enabled: isLoggedIn,
   });
 
   const discussions = discussionsResponse?.data || [];
   const trendingTopics = trendingTopicsResponse?.data || [];
+
+  // Update user interests and filtering state when data changes
+  useEffect(() => {
+    if (discussionsResponse?.meta) {
+      setUserInterests(discussionsResponse.meta.user_interests?.names || []);
+      setIsFilteredByInterests(discussionsResponse.meta.filtered_by_interests || false);
+    }
+  }, [discussionsResponse]);
+
+  // Update available game types when data changes
+  useEffect(() => {
+    if (availableGameTypesResponse?.data) {
+      setAvailableGameTypes(availableGameTypesResponse.data);
+    }
+  }, [availableGameTypesResponse]);
 
   // Handle search
   const handleSearch = (query: string) => {
@@ -196,9 +226,9 @@ export default function Discussion() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-white pb-20">
       {/* Header */}
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 py-4">
+      <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-sm border-b border-border/50 px-4 py-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <div>
             <h1 className="text-2xl font-bold">Discussions</h1>
@@ -212,6 +242,50 @@ export default function Discussion() {
             Start Discussion
           </Button>
         </div>
+
+        {/* User Interest Filtering Status */}
+        {isFilteredByInterests && userInterests.length > 0 && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm text-blue-800 font-medium">
+                  Showing discussions for your interests: <span className="font-semibold">{userInterests.join(', ')}</span>
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllSports(!showAllSports)}
+                className="text-blue-700 border-blue-300 hover:bg-blue-100"
+              >
+                {showAllSports ? 'Filter by Interests' : 'Show All Sports'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* No Interests Warning */}
+        {!isFilteredByInterests && userInterests.length === 0 && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span className="text-sm text-yellow-800">
+                  Showing all discussions. <span className="font-medium">Set your sport interests for personalized content.</span>
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '/profile'}
+                className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+              >
+                Set Interests
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Filters and Search */}
         <div className="space-y-3">
@@ -227,21 +301,17 @@ export default function Discussion() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Game Types</SelectItem>
-                <SelectItem value="football">Football</SelectItem>
-                <SelectItem value="tennis">Tennis</SelectItem>
-                <SelectItem value="basketball">Basketball</SelectItem>
-                <SelectItem value="cricket">Cricket</SelectItem>
-                <SelectItem value="rugby">Rugby</SelectItem>
-                <SelectItem value="golf">Golf</SelectItem>
-                <SelectItem value="swimming">Swimming</SelectItem>
-                <SelectItem value="cycling">Cycling</SelectItem>
-                <SelectItem value="running">Running</SelectItem>
-                <SelectItem value="volleyball">Volleyball</SelectItem>
-                <SelectItem value="badminton">Badminton</SelectItem>
-                <SelectItem value="table-tennis">Table Tennis</SelectItem>
-                <SelectItem value="hockey">Hockey</SelectItem>
-                <SelectItem value="boxing">Boxing</SelectItem>
-                <SelectItem value="martial-arts">Martial Arts</SelectItem>
+                {isLoadingGameTypes ? (
+                  <SelectItem value="loading" disabled>Loading your sports...</SelectItem>
+                ) : availableGameTypes.length > 0 ? (
+                  availableGameTypes.map((gameType) => (
+                    <SelectItem key={gameType.id} value={gameType.name.toLowerCase()}>
+                      {gameType.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-interests" disabled>Set your interests to see sports</SelectItem>
+                )}
               </SelectContent>
             </Select>
             
@@ -298,7 +368,7 @@ export default function Discussion() {
 
       <div className="px-4 py-6">
         {/* Trending Topics */}
-        <Card className="mb-6 border-border/50">
+        <Card className="mb-6 border-border/50 bg-white">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-sport-orange" />
@@ -333,7 +403,7 @@ export default function Discussion() {
                       <div
                         key={topic.name}
                         onClick={() => handleTopicClick(topic.name)}
-                        className="min-w-[180px] rounded-lg border border-border bg-muted hover:bg-muted/70 cursor-pointer transition-colors p-3 flex-shrink-0"
+                        className="min-w-[180px] rounded-lg border border-border bg-white hover:bg-gray-50 cursor-pointer transition-colors p-3 flex-shrink-0"
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm font-semibold">{topic.name}</span>
@@ -397,7 +467,7 @@ export default function Discussion() {
           {isLoadingDiscussions ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
+                <Card key={i} className="animate-pulse bg-white">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-gray-200 rounded-full"></div>

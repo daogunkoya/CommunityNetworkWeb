@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Calendar, MapPin, Users, Trophy, X } from 'lucide-react';
 import { gameService, CreateGameEventData } from '@/services/games';
+import discussionsService from '@/services/discussions';
 import AddressInput from '@/components/ui/AddressInput';
 
 interface CreateGameEventModalProps {
@@ -19,6 +20,8 @@ interface CreateGameEventModalProps {
 interface GameType {
   id: number;
   name: string;
+  color?: string;
+  icon_path?: string;
 }
 
 export function CreateGameEventModal({ open, onOpenChange, onGameCreated }: CreateGameEventModalProps) {
@@ -79,16 +82,13 @@ export function CreateGameEventModal({ open, onOpenChange, onGameCreated }: Crea
   const loadGameTypes = async () => {
     setIsLoadingGameTypes(true);
     try {
-      const response = await fetch('http://localhost:8001/api/game-types');
-      if (response.ok) {
-        const data = await response.json();
-        setGameTypes(data);
-      }
+      const response = await discussionsService.getAvailableGameTypes();
+      setGameTypes(response.data);
     } catch (error) {
-      console.error('Failed to load game types:', error);
+      console.error('Failed to load available game types:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load game types',
+        description: 'Failed to load available game types',
         variant: 'destructive',
       });
     } finally {
@@ -159,21 +159,45 @@ export function CreateGameEventModal({ open, onOpenChange, onGameCreated }: Crea
           <div className="space-y-2">
             <Label htmlFor="game_type_id">Sport Type *</Label>
             <Select
-              value={formData.game_type_id.toString()}
-              onValueChange={(value) => handleInputChange('game_type_id', parseInt(value))}
+              value={formData.game_type_id > 0 ? formData.game_type_id.toString() : undefined}
+              onValueChange={(value) => {
+                handleInputChange('game_type_id', parseInt(value));
+              }}
               disabled={isLoadingGameTypes}
             >
               <SelectTrigger>
-                <SelectValue placeholder={isLoadingGameTypes ? "Loading sports..." : "Select a sport"} />
+                <SelectValue placeholder={isLoadingGameTypes ? "Loading your sports..." : "Select a sport from your interests"} />
               </SelectTrigger>
               <SelectContent>
-                {gameTypes.map((gameType) => (
-                  <SelectItem key={gameType.id} value={gameType.id.toString()}>
-                    {gameType.name}
-                  </SelectItem>
-                ))}
+                {isLoadingGameTypes ? (
+                  <SelectItem value="loading" disabled>Loading your sports...</SelectItem>
+                ) : gameTypes.length > 0 ? (
+                  gameTypes.map((gameType) => (
+                    <SelectItem key={gameType.id} value={gameType.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: gameType.color }}
+                        />
+                        {gameType.name}
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-interests" disabled>Set your interests to see sports</SelectItem>
+                )}
               </SelectContent>
             </Select>
+            {gameTypes.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Showing {gameTypes.length} sport(s) from your interests
+              </p>
+            )}
+            {gameTypes.length === 0 && !isLoadingGameTypes && (
+              <p className="text-xs text-amber-600">
+                No sports available. Set your interests in your profile to see relevant sports.
+              </p>
+            )}
           </div>
 
           {/* Skill Level */}

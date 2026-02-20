@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Trophy, MapPin, Calendar, Users, Plus, Loader2, X } from 'lucide-react';
@@ -8,7 +8,7 @@ import { GameEventCard } from '@/components/GameEventCard';
 import { CreateGameEventModal } from '@/components/CreateGameEventModal';
 import { Pagination } from '@/components/Pagination';
 import { useGames } from '@/hooks/useGames';
-import { GameEvent } from '@/services/games';
+import { GameEvent, gameService } from '@/services/games';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +24,9 @@ export default function Games() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [availableGameTypes, setAvailableGameTypes] = useState<Array<{ id: number; name: string; color: string; icon_path: string }>>([]);
+  const [isLoadingGameTypes, setIsLoadingGameTypes] = useState(false);
+  const [showAllSports, setShowAllSports] = useState(false);
   const { user, signIn } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -38,9 +41,34 @@ export default function Games() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Load available game types (user's interests) when user is logged in
+  useEffect(() => {
+    if (user) {
+      loadAvailableGameTypes();
+    }
+  }, [user]);
+
+  const loadAvailableGameTypes = async () => {
+    setIsLoadingGameTypes(true);
+    try {
+      const response = await gameService.getAvailableGameTypes();
+      // Safely handle the response - ensure data is an array
+      setAvailableGameTypes(Array.isArray(response?.data) ? response.data : []);
+    } catch (error) {
+      console.error('Failed to load available game types:', error);
+      // Set empty array on error to prevent crashes
+      setAvailableGameTypes([]);
+    } finally {
+      setIsLoadingGameTypes(false);
+    }
+  };
+
+  // Determine if we should use user interests for sport stats
+  const shouldUseUserInterests = user && !showAllSports && availableGameTypes.length > 0;
+
   const {
-    events,
-    pagination,
+    events: allEvents,
+    pagination: allPagination,
     sportStats,
     isLoading,
     joinEvent,
@@ -62,7 +90,34 @@ export default function Games() {
              selectedDateRange === 'this-month' ? new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0] : undefined,
     per_page: 12, // Show 12 games per page for better UX
     page: currentPage,
-  });
+  }, shouldUseUserInterests);
+
+  // Filter events by user interests if filtering is enabled
+  const events = React.useMemo(() => {
+    if (!user || showAllSports || availableGameTypes.length === 0 || !allEvents) {
+      return allEvents || [];
+    }
+    
+    // Filter events to only include user's interests
+    const userInterestNames = (availableGameTypes || []).map(gt => gt?.name).filter(Boolean);
+    return allEvents.filter(event => userInterestNames.includes(event.sport));
+  }, [allEvents, user, showAllSports, availableGameTypes]);
+
+  // Calculate filtered pagination
+  const pagination = React.useMemo(() => {
+    if (!user || showAllSports || availableGameTypes.length === 0 || !allEvents) {
+      return allPagination;
+    }
+    
+    // Calculate total filtered count
+    const userInterestNames = (availableGameTypes || []).map(gt => gt?.name).filter(Boolean);
+    const filteredCount = allEvents.filter(event => userInterestNames.includes(event.sport)).length;
+    
+    return {
+      ...allPagination,
+      total: filteredCount
+    };
+  }, [allPagination, allEvents, user, showAllSports, availableGameTypes]);
 
   const handleJoinEvent = (eventId: number) => {
     joinEvent(eventId);
@@ -77,10 +132,11 @@ export default function Games() {
     window.location.reload();
   };
 
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedSport, selectedSkillLevel, selectedDateRange, showMyGamesOnly]);
+  }, [searchTerm, selectedSport, selectedSkillLevel, selectedDateRange, showMyGamesOnly, showAllSports]);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -93,20 +149,17 @@ export default function Games() {
     }
   };
 
-  // Dynamically generate sports categories from actual events
-  const getSportCount = (sportName: string) => {
-    return events?.filter(event => event.sport === sportName).length || 0;
-  };
-
-  // Get unique sports from events and create categories
-    const getSportsCategories = () => {
-    if (!sportStats) return [];
+  // Get sports categories from API (already filtered by user interests if applicable)
+  const getSportsCategories = () => {
+    // Ensure sportStats is an array before mapping
+    if (!sportStats || !Array.isArray(sportStats)) return [];
     
-    // Use the sport stats API data which contains total counts across all pages
+    // The API now provides the correct counts based on user interests
+    // No need for frontend filtering or calculation
     return sportStats.map(sport => ({
-      name: sport.name,
-      count: sport.count,
-      color: sport.color || 'bg-accent'
+      name: sport?.name || '',
+      count: sport?.count || 0,
+      color: sport?.color || 'bg-accent'
     }));
   };
 
@@ -149,7 +202,7 @@ export default function Games() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md bg-white">
           <CardHeader>
             <CardTitle className="text-center">Login Required</CardTitle>
           </CardHeader>
@@ -183,11 +236,11 @@ export default function Games() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-white pb-20">
 
 
       {/* Header */}
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 py-4">
+      <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-sm border-b border-border/50 px-4 py-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Games</h1>
@@ -225,17 +278,27 @@ export default function Games() {
                     </span>
                   </div>
                 </SelectItem>
-                {sportsCategories.map((sport) => (
-                  <SelectItem key={sport.name} value={sport.name}>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${sport.color}`} />
-                      <span>{sport.name}</span>
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {sport.count} games
-                      </span>
-                    </div>
+                {isLoadingGameTypes ? (
+                  <SelectItem value="loading" disabled>
+                    Loading your sports...
                   </SelectItem>
-                ))}
+                ) : sportsCategories.length > 0 ? (
+                  sportsCategories.map((sport) => (
+                    <SelectItem key={sport.name} value={sport.name}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${sport.color}`} />
+                        <span>{sport.name}</span>
+                        <span className="text-xs text-muted-foreground ml-auto">
+                          {sport.count} games
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : user ? (
+                  <SelectItem value="no-interests" disabled>
+                    Set your interests to see sports
+                  </SelectItem>
+                ) : null}
               </SelectContent>
             </Select>
             
@@ -304,6 +367,50 @@ export default function Games() {
               My Games Only
             </Button>
           </div>
+
+          {/* User Interest Filtering Status */}
+          {user && availableGameTypes.length > 0 && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm text-blue-800 font-medium">
+                    Showing sports for your interests: <span className="font-semibold">{(availableGameTypes || []).map(gt => gt?.name).filter(Boolean).join(', ')}</span>
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllSports(!showAllSports)}
+                  className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                >
+                  {showAllSports ? 'Filter by Interests' : 'Show All Sports'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* No Interests Warning */}
+          {user && availableGameTypes.length === 0 && !isLoadingGameTypes && (
+            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm text-yellow-800">
+                    Showing all sports. <span className="font-medium">Set your sport interests for personalized content.</span>
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.href = '/profile'}
+                  className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                >
+                  Set Interests
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -339,7 +446,7 @@ export default function Games() {
           {isLoading && currentPage === 1 ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
-                <Card key={i} className="border-border/50">
+                <Card key={i} className="border-border/50 bg-white">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -367,7 +474,7 @@ export default function Games() {
           ) : isLoading && currentPage > 1 ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
-                <Card key={i} className="border-border/50">
+                <Card key={i} className="border-border/50 bg-white">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -420,7 +527,7 @@ export default function Games() {
               )}
             </>
           ) : (
-            <Card className="border-border/50">
+            <Card className="border-border/50 bg-white">
               <CardContent className="p-8 text-center">
                 <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">No games found</h3>
@@ -448,6 +555,7 @@ export default function Games() {
         onOpenChange={setShowCreateModal}
         onGameCreated={handleGameCreated}
       />
+
     </div>
   );
 }

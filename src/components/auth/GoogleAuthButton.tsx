@@ -93,11 +93,15 @@ export function GoogleAuthButton({ onSuccess, onError, className }: GoogleAuthBu
           const token = typeof authResult.data.token === 'string' 
             ? authResult.data.token 
             : (authResult.data.token as any).accessToken;
-          sessionStorage.setItem('google_user_data', JSON.stringify({
+          
+          // Store Google user data
+          const googleData = {
             ...googleUserData,
             token: token,
             user: authResult.data.user
-          }));
+          };
+          
+          sessionStorage.setItem('google_user_data', JSON.stringify(googleData));
           
           toast.success('Google authentication successful! Please complete your registration.');
           navigate('/register?source=google');
@@ -200,11 +204,14 @@ export function GoogleAuthButton({ onSuccess, onError, className }: GoogleAuthBu
           const token = typeof authResult.data.token === 'string' 
             ? authResult.data.token 
             : (authResult.data.token as any).accessToken;
-          sessionStorage.setItem('google_user_data', JSON.stringify({
+          // Store mock Google user data
+          const googleData = {
             ...mockGoogleUserData,
             token: token,
             user: authResult.data.user
-          }));
+          };
+          
+          sessionStorage.setItem('google_user_data', JSON.stringify(googleData));
           
           toast.success('Google authentication successful! Please complete your registration.');
           navigate('/register?source=google');

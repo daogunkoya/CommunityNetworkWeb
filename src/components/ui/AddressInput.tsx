@@ -38,6 +38,13 @@ export default function AddressInput({
   const timeoutRef = useRef<NodeJS.Timeout>();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('AddressInput - Value changed:', value);
+    console.log('AddressInput - Suggestions:', suggestions);
+    console.log('AddressInput - Show suggestions:', showSuggestions);
+  }, [value, suggestions, showSuggestions]);
+
   // Debounced search for address suggestions (single input, optional postcode mode)
   useEffect(() => {
     if (timeoutRef.current) {
@@ -53,9 +60,12 @@ export default function AddressInput({
     timeoutRef.current = setTimeout(async () => {
       try {
         setIsLoading(true);
+        console.log('AddressInput - Searching for:', value, 'Mode:', postcodeMode ? 'postcode' : 'address');
         const results = await addressService.getAutocompleteSuggestions(value, postcodeMode ? 'postcode' : 'address');
+        console.log('AddressInput - API Results:', results);
         setSuggestions(results);
         setShowSuggestions(true);
+        console.log('AddressInput - Set suggestions, count:', results.length);
       } catch (error) {
         console.error('Address search error:', error);
         setSuggestions([]);

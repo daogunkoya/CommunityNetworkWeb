@@ -15,8 +15,13 @@ import GameDetail from './pages/GameDetail';
 import DiscussionDetail from './pages/DiscussionDetail';
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
+import AdminReports from "./pages/AdminReports";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import Contact from "./pages/Contact";
+import Eula from "./pages/Eula";
 import { RegistrationFlow } from './components/auth/RegistrationFlow';
 import { SigninFlow } from './components/auth/SigninFlow';
 
@@ -43,10 +48,14 @@ const AppRoutes = () => {
       {/* Public routes - always accessible */}
       <Route path="/signin" element={<SigninFlow />} />
       <Route path="/register" element={<RegistrationFlow />} />
-      
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/eula" element={<Eula />} />
+      <Route path="/contact" element={<Contact />} />
+
       {/* Landing page - always show for root path */}
       <Route path="/" element={<LandingPage />} />
-      
+
       {/* Protected routes - dashboard and app features */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
@@ -111,7 +120,16 @@ const AppRoutes = () => {
           </Layout>
         </ProtectedRoute>
       } />
-      
+
+      {/* Admin Protected Routes */}
+      <Route path="/admin/reports" element={
+        <ProtectedRoute requireAdmin={true}>
+          <Layout>
+            <AdminReports />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
     </Routes>

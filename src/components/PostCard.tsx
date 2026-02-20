@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState } from 'react';
-import { discussionsService } from '@/services/discussions';
+import discussionsService from '@/services/discussions';
 import { toast } from 'sonner';
 import { CommentModal } from './CommentModal';
 
@@ -46,6 +46,11 @@ export function PostCard({
   const [likeCount, setLikeCount] = useState(likes);
   const [liked, setLiked] = useState(isLiked);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState(comments);
+
+  const handleCommentAdded = () => {
+    setCommentCount(prev => prev + 1);
+  };
 
   const handleLike = async () => {
     if (!id || type !== 'discussion') {
@@ -58,13 +63,13 @@ export function PostCard({
     try {
       if (liked) {
         console.log('Unliking discussion:', id);
-        await discussionService.unlikeDiscussion(id);
+        await discussionsService.unlikeDiscussion(id);
         setLikeCount(prev => prev - 1);
         setLiked(false);
         toast.success('Discussion unliked');
       } else {
         console.log('Liking discussion:', id);
-        await discussionService.likeDiscussion(id);
+        await discussionsService.likeDiscussion(id);
         setLikeCount(prev => prev + 1);
         setLiked(true);
         toast.success('Discussion liked');
@@ -177,18 +182,17 @@ export function PostCard({
                     {likeCount}
                   </Button>
                   
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm" 
                     className="gap-2 text-muted-foreground"
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log('Opening comment modal for discussion:', id);
                       setIsCommentModalOpen(true);
                     }}
                   >
                     <MessageCircle className="h-4 w-4" />
-                    {comments}
+                    {commentCount}
                   </Button>
                 </div>
                 
@@ -217,6 +221,7 @@ export function PostCard({
           onClose={() => setIsCommentModalOpen(false)}
           discussionId={id}
           discussionTitle={content}
+          onCommentAdded={handleCommentAdded}
         />
       )}
     </>

@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { authService } from '@/services/auth';
+import { profileService } from '@/services/profile';
 import { AuthUser, LoginCredentials, RegisterData } from '@/types/auth';
 
 interface AuthContextType {
@@ -25,6 +26,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = authService.getStoredUser();
         if (storedUser && authService.isAuthenticated()) {
           setUser(storedUser);
+
+          // Fetch fresh profile data in background to ensure 'role' and other fields are up-to-date
+          try {
+            const freshProfile = await profileService.getProfile();
+            if (freshProfile) {
+              const updatedUser = { ...storedUser, ...freshProfile };
+              setUser(updatedUser);
+              authService.setStoredUser(updatedUser);
+            }
+          } catch (syncError) {
+            console.warn('Silent profile sync failed:', syncError);
+          }
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -54,23 +67,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       const response = await authService.register(registerData);
-      
+
       // Check if response is successful and has the expected data structure
       if (!response.success || !response.data || !response.data.user) {
         throw new Error(response.message || 'Registration failed - invalid response structure');
       }
-      
+
       // Only set user if no verification is required (user is immediately logged in)
       if (!response.requires_verification) {
         authService.setStoredUser(response.data.user);
         // Handle both string and object token formats
-        const token = typeof response.data.token === 'string' 
-          ? response.data.token 
+        const token = typeof response.data.token === 'string'
+          ? response.data.token
           : (response.data.token as any).accessToken;
         authService.setStoredToken(token);
         setUser(response.data.user);
       }
-      
+
       return { error: null };
     } catch (error: any) {
       return { error };
@@ -82,20 +95,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const credentials: LoginCredentials = { email, password };
       const response = await authService.login(credentials);
 
-      
+
       // Check if response is successful and has the expected data structure
       if (!response.success || !response.data || !response.data.user) {
         throw new Error(response.message || 'Login failed - invalid response structure');
       }
-      
+
       // Store user and token in localStorage
       authService.setStoredUser(response.data.user || response?.user);
       // Handle both string and object token formats
-      const token = typeof response.data.token === 'string' 
-        ? response.data.token 
+      const token = typeof response.data.token === 'string'
+        ? response.data.token
         : (response.data.token as any).accessToken;
       authService.setStoredToken(token);
-      
+
       setUser(response.data.user);
       return { error: null };
     } catch (error: any) {

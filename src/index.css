@@ -112,8 +112,22 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    @apply bg-background;
+    /* Prevent overscroll bounce effect that shows yellow background */
+    overscroll-behavior: none;
+    /* Ensure consistent background on mobile */
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     @apply bg-background text-foreground;
+    /* Prevent overscroll bounce effect */
+    overscroll-behavior: none;
+    /* Ensure body takes full height */
+    min-height: 100vh;
+    /* Prevent any default browser styling that might cause yellow background */
+    background-color: hsl(var(--background)) !important;
   }
 }
 
@@ -139,4 +153,46 @@ All colors MUST be HSL.
 
 .scrollbar-neutral:hover::-webkit-scrollbar-thumb {
   background-color: hsl(var(--muted-foreground) / 0.35);
+}
+
+/* Mobile-specific fixes for overscroll bounce */
+@media (max-width: 768px) {
+  html, body {
+    /* Prevent the yellow/white background from showing during overscroll */
+    background-color: white !important;
+    overscroll-behavior: none !important;
+    /* Ensure smooth scrolling without bounce */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent momentum scrolling that can reveal background */
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
+  }
+  
+    /* Additional fix for mobile browsers */
+  body {
+    position: relative;
+    min-height: 100vh;
+    background-color: white !important;
+  }
+  
+}
+
+/* Standard mobile styling */
+html, body {
+  background-color: white;
+  height: 100%;
+}
+
+/* Custom animations for 2025 design */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
 }

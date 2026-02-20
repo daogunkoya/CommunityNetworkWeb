@@ -81,10 +81,11 @@ const CreateConversationModal = ({
         const response = await api.get('/users');
         console.log('Users API response:', response.data);
         if (response.data.success && response.data.data) {
-          // Filter out the current user from the list
+          // Filter out the current user from the list - ensure data is an array
+          const usersData = Array.isArray(response.data.data) ? response.data.data : [];
           const currentUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
-          const filteredUsers = response.data.data.filter((user: User) => user.id !== currentUser.id);
-          console.log('Filtered users for modal:', filteredUsers.map(u => u.full_name));
+          const filteredUsers = usersData.filter((user: User) => user?.id !== currentUser?.id);
+          console.log('Filtered users for modal:', filteredUsers.map(u => u?.full_name).filter(Boolean));
           return filteredUsers;
         }
         console.log('No users found in API response');
@@ -219,7 +220,7 @@ const CreateConversationModal = ({
                         <div
                           key={user.id}
                           className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                            selectedUsers.includes(user.id) ? 'bg-primary/10 border border-primary' : 'hover:bg-muted'
+                            selectedUsers.includes(user.id) ? 'bg-primary/10 border border-primary' : 'hover:bg-gray-50'
                           }`}
                           onClick={() => handleUserToggle(user.id)}
                         >
@@ -261,7 +262,7 @@ const CreateConversationModal = ({
                         {user.full_name}
                         <button
                           onClick={() => handleUserToggle(userId)}
-                          className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                          className="ml-1 hover:bg-gray-100 rounded-full p-0.5"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -492,7 +493,7 @@ export default function Messages() {
       
       // Update conversation list with new last message
       queryClient.setQueryData(['conversations', conversationType], (oldData: any) => {
-        if (!oldData) return oldData;
+        if (!oldData || !Array.isArray(oldData.data)) return oldData;
         return {
           ...oldData,
           data: oldData.data.map((conv: any) => 
@@ -539,7 +540,7 @@ export default function Messages() {
       
       // Update conversation list
       queryClient.setQueryData(['conversations', conversationType], (oldData: any) => {
-        if (!oldData) return oldData;
+        if (!oldData || !Array.isArray(oldData.data)) return oldData;
         return {
           ...oldData,
           data: oldData.data.map((conv: any) => 
@@ -663,9 +664,9 @@ export default function Messages() {
 
 
   return (
-    <div className="flex h-screen bg-background w-full max-w-full overflow-hidden" style={{ maxWidth: '100vw' }}>
+    <div className="flex h-screen bg-white w-full max-w-full overflow-hidden" style={{ maxWidth: '100vw' }}>
       {/* Sidebar */}
-      <div className="w-80 border-r bg-card relative z-10 flex flex-col">
+      <div className="w-80 border-r bg-white relative z-10 flex flex-col">
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -769,7 +770,7 @@ export default function Messages() {
               <div
                 key={conversation.id}
                 className={`p-4 border-b cursor-pointer transition-colors ${
-                  selectedChat === conversation.id ? 'bg-primary/5 border-primary' : 'hover:bg-muted/50'
+                  selectedChat === conversation.id ? 'bg-primary/5 border-primary' : 'hover:bg-gray-50'
                 }`}
                 onClick={() => handleConversationSelect(conversation.id)}
               >
@@ -828,7 +829,7 @@ export default function Messages() {
       <div className="flex-1 flex flex-col relative z-0 min-w-0 overflow-hidden">
         {/* Header */}
         {selectedConversation ? (
-          <div className="p-4 border-b bg-card">
+          <div className="p-4 border-b bg-white">
             <div 
               className={`flex items-center space-x-3 ${selectedConversation.type === 'group' ? 'cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors' : ''}`}
               onClick={selectedConversation.type === 'group' ? toggleGroupMembers : undefined}
@@ -896,13 +897,13 @@ export default function Messages() {
             )}
           </div>
         ) : (
-          <div className="p-4 border-b bg-card">
+          <div className="p-4 border-b bg-white">
             <h3 className="font-medium text-muted-foreground">Select a conversation</h3>
           </div>
         )}
 
         {/* Messages */}
-        <div ref={messagesListRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-background relative z-0 min-w-0">
+        <div ref={messagesListRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-white relative z-0 min-w-0">
           {loadingMessages && selectedChat ? (
             <div className="text-sm text-muted-foreground">Loading messages...</div>
           ) : selectedChat === null ? (

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Loader2, X, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { discussionsService, Comment, CreateCommentData } from '@/services/discussions';
+import discussionsService, { Comment, CreateCommentData } from '@/services/discussions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import TypingIndicator from '@/components/TypingIndicator';
 
@@ -14,9 +14,10 @@ interface CommentModalProps {
   onClose: () => void;
   discussionId: number;
   discussionTitle: string;
+  onCommentAdded?: () => void; // Callback to update comment count
 }
 
-export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }: CommentModalProps) {
+export function CommentModal({ isOpen, onClose, discussionId, discussionTitle, onCommentAdded }: CommentModalProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,8 +39,7 @@ export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }:
 
     const pollTypingUsers = async () => {
       try {
-        const response = await discussionService.getTypingUsers(discussionId);
-        console.log('🔄 Polling typing users for discussion', discussionId, ':', response.data);
+        const response = await discussionsService.getTypingUsers(discussionId);
         setTypingUsers(response.data);
       } catch (error) {
         console.error('Failed to fetch typing users:', error);
@@ -60,7 +60,7 @@ export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }:
         clearTimeout(typingTimeoutRef.current);
       }
       if (isTyping && discussionId) {
-        discussionService.stopTyping(discussionId).catch(console.error);
+        discussionsService.stopTyping(discussionId).catch(console.error);
       }
     };
   }, [isTyping, discussionId]);
@@ -68,7 +68,7 @@ export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }:
   const loadComments = async () => {
     setIsLoading(true);
     try {
-      const response = await discussionService.getComments(discussionId);
+      const response = await discussionsService.getComments(discussionId);
       setComments(response.data);
     } catch (error: any) {
       toast.error('Failed to load comments');
@@ -87,16 +87,24 @@ export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }:
 
     // Stop typing indicator when submitting
     if (isTyping) {
-      await discussionService.stopTyping(discussionId);
+      await discussionsService.stopTyping(discussionId);
       setIsTyping(false);
     }
 
     setIsSubmitting(true);
     try {
-      const response = await discussionService.addComment(discussionId, { body: newComment });
+      const response = await discussionsService.addComment(discussionId, { body: newComment });
       setComments(prev => [...prev, response.data]);
       setNewComment('');
       toast.success('Comment added successfully!');
+      
+      // Call the callback to update comment count in parent component
+      if (onCommentAdded) {
+        onCommentAdded();
+      }
+      
+      // Close the modal after successful submission
+      onClose();
     } catch (error: any) {
       toast.error(error.message || 'Failed to add comment');
     } finally {
@@ -112,7 +120,7 @@ export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }:
       console.log('🚀 Starting typing indicator for discussion', discussionId);
       console.log('🔑 Current auth token:', localStorage.getItem('auth_token') ? 'Present' : 'Missing');
       setIsTyping(true);
-      const result = await discussionService.startTyping(discussionId);
+      const result = await discussionsService.startTyping(discussionId);
       console.log('✅ Typing indicator started successfully:', result);
     } catch (error) {
       console.error('❌ Failed to start typing indicator:', error);
@@ -130,7 +138,7 @@ export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }:
     try {
       console.log('🛑 Stopping typing indicator for discussion', discussionId);
       setIsTyping(false);
-      await discussionService.stopTyping(discussionId);
+      await discussionsService.stopTyping(discussionId);
       console.log('✅ Typing indicator stopped successfully');
     } catch (error) {
       console.error('❌ Failed to stop typing indicator:', error);
@@ -184,24 +192,9 @@ export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }:
                 </div>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              disabled={isSubmitting}
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
 
-        {/* Debug panel - remove this after testing */}
-        <div className="bg-gray-100 p-2 rounded text-xs text-gray-600 mb-2">
-          <div>Debug: Discussion ID: {discussionId}</div>
-          <div>Debug: Is Typing: {isTyping ? 'Yes' : 'No'}</div>
-          <div>Debug: Typing Users: {typingUsers.length}</div>
-          <div>Debug: Typing Users: {JSON.stringify(typingUsers.map(u => u.user_name))}</div>
-        </div>
 
         <div className="flex-1 overflow-y-auto space-y-4">
           {isLoading ? (
@@ -213,7 +206,7 @@ export function CommentModal({ isOpen, onClose, discussionId, discussionTitle }:
               {comments.length > 0 ? (
             <div className="space-y-4">
               {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3 p-3 bg-muted/50 rounded-lg">
+                <div key={comment.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={comment.author.avatar} />
                     <AvatarFallback className="text-xs">

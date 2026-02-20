@@ -5,9 +5,10 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  requireAdmin?: boolean;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -26,6 +27,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/signin" state={{ from: location }} replace />;
+  }
+
+  // Redirect to dashboard if user exists but lacks admin privileges
+  if (requireAdmin && (user as any).role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Render children if authenticated

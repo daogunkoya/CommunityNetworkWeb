@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { tournamentsService } from '@/services/tournaments';
@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trophy, MapPin, Calendar, Users, DollarSign, Search, Filter } from 'lucide-react';
+import { Trophy, MapPin, Calendar, Users, DollarSign, Search, Filter, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { CreateTournamentModal } from '@/components/CreateTournamentModal';
 
 const Tournament = () => {
   const { user, isLoggedIn } = useAuth();
@@ -21,12 +22,54 @@ const Tournament = () => {
     page: 1,
     limit: 12
   });
+  const [showAllSports, setShowAllSports] = useState(false);
+  const [availableGameTypes, setAvailableGameTypes] = useState<Array<{ id: number; name: string; color: string; icon_path: string }>>([]);
+  const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [isFilteredByInterests, setIsFilteredByInterests] = useState(false);
+
+  // Fetch available game types (user's interests only) using React Query
+  const {
+    data: availableGameTypesResponse,
+    isLoading: isLoadingGameTypes
+  } = useQuery({
+    queryKey: ['available-game-types-tournaments'],
+    queryFn: () => tournamentsService.getAvailableGameTypes(),
+    enabled: isLoggedIn,
+  });
+
+  // Update available game types when data changes
+  useEffect(() => {
+    if (availableGameTypesResponse?.data) {
+      setAvailableGameTypes(availableGameTypesResponse.data);
+    }
+  }, [availableGameTypesResponse]);
+
+  // Convert filter values for API calls
+  const getApiFilters = () => {
+    const apiFilters = { ...filters };
+    if (apiFilters.game_type === 'all') apiFilters.game_type = '';
+    if (apiFilters.status === 'all') apiFilters.status = '';
+    apiFilters.filter_by_interests = showAllSports ? 'false' : 'true';
+    return apiFilters;
+  };
 
   const { data: tournamentsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['tournaments', filters],
+    queryKey: ['tournaments', filters, showAllSports],
     queryFn: () => tournamentsService.getTournaments(getApiFilters()),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1, // Only retry once to prevent long loading
+    onError: (error) => {
+      console.error('Tournament query error:', error);
+    }
   });
+
+  // Update user interests and filtering state when data changes
+  useEffect(() => {
+    if (tournamentsData?.meta) {
+      setUserInterests(tournamentsData.meta.user_interests?.names || []);
+      setIsFilteredByInterests(tournamentsData.meta.filtered_by_interests || false);
+    }
+  }, [tournamentsData]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({
@@ -34,14 +77,6 @@ const Tournament = () => {
       [key]: value,
       page: 1 // Reset to first page when filters change
     }));
-  };
-
-  // Convert filter values for API calls
-  const getApiFilters = () => {
-    const apiFilters = { ...filters };
-    if (apiFilters.game_type === 'all') apiFilters.game_type = '';
-    if (apiFilters.status === 'all') apiFilters.status = '';
-    return apiFilters;
   };
 
   const handleRegister = async (tournamentId: number) => {
@@ -87,6 +122,17 @@ const Tournament = () => {
     }
   };
 
+  // Debug logging
+  console.log('Tournament component render:', {
+    isLoggedIn,
+    user,
+    isLoading,
+    error,
+    tournamentsData,
+    availableGameTypes,
+    showAllSports
+  });
+
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -103,11 +149,15 @@ const Tournament = () => {
   const pagination = tournamentsData?.pagination;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Tournaments</h1>
-        <p className="text-gray-600">Find and join exciting tournaments in your area</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Tournaments</h1>
+          <p className="text-gray-600">Find and join exciting tournaments in your area</p>
+        </div>
+        {isLoggedIn && <CreateTournamentModal />}
       </div>
 
       {/* Filters */}
@@ -127,15 +177,29 @@ const Tournament = () => {
           
           <Select value={filters.game_type} onValueChange={(value) => handleFilterChange('game_type', value)}>
             <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="All Sports" />
+              <SelectValue placeholder={isLoadingGameTypes ? "Loading..." : "All Sports"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Sports</SelectItem>
-              <SelectItem value="tennis">Tennis</SelectItem>
-              <SelectItem value="basketball">Basketball</SelectItem>
-              <SelectItem value="football">Football</SelectItem>
-              <SelectItem value="badminton">Badminton</SelectItem>
-              <SelectItem value="table-tennis">Table Tennis</SelectItem>
+              {isLoadingGameTypes ? (
+                <SelectItem value="loading" disabled>Loading your sports...</SelectItem>
+              ) : availableGameTypes.length > 0 ? (
+                availableGameTypes.map((gameType) => (
+                  <SelectItem key={gameType.id} value={gameType.name.toLowerCase().replace(/\s+/g, '-')}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: gameType.color }}
+                      />
+                      {gameType.name}
+                    </div>
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-interests" disabled>
+                  Set your interests to see sports
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
 
@@ -159,6 +223,49 @@ const Tournament = () => {
           />
         </div>
       </div>
+
+      {/* User Interest Filtering Status */}
+      {isFilteredByInterests && userInterests.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-sm text-blue-800 font-medium">
+                Showing tournaments for your interests: <span className="font-semibold">{userInterests.join(', ')}</span>
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAllSports(!showAllSports)}
+              className="text-blue-700 border-blue-300 hover:bg-blue-100"
+            >
+              {showAllSports ? 'Filter by Interests' : 'Show All Sports'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!isFilteredByInterests && availableGameTypes.length === 0 && !isLoadingGameTypes && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              <span className="text-sm text-yellow-800">
+                Showing all tournaments. <span className="font-medium">Set your sport interests for personalized content.</span>
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = '/profile'}
+              className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+            >
+              Set Interests
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Featured Tournament */}
       {tournaments.length > 0 && (
@@ -193,7 +300,7 @@ const Tournament = () => {
                 </div>
                 <div className="flex items-center">
                   <DollarSign className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-600">${tournaments[0].entry_fee}</span>
+                  <span className="text-sm text-gray-600">£{tournaments[0].entry_fee}</span>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -226,7 +333,7 @@ const Tournament = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
+              <Card key={i} className="animate-pulse bg-white">
                 <CardHeader>
                   <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                   <div className="h-3 bg-gray-200 rounded w-1/2"></div>
@@ -249,7 +356,7 @@ const Tournament = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tournaments.map((tournament) => (
-              <Card key={tournament.id} className="hover:shadow-lg transition-shadow">
+              <Card key={tournament.id} className="hover:shadow-lg transition-shadow bg-white">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{tournament.name}</CardTitle>
@@ -281,7 +388,7 @@ const Tournament = () => {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <DollarSign className="h-4 w-4 mr-2" />
-                      Entry: ${tournament.entry_fee}
+                      Entry: £{tournament.entry_fee}
                     </div>
                   </div>
                   
@@ -338,6 +445,7 @@ const Tournament = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

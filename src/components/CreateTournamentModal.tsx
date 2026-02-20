@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,46 +6,87 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Calendar, MapPin, Trophy, Users, DollarSign } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import tournamentService, { CreateTournamentData } from '@/services/tournaments';
+import { tournamentsService, CreateTournamentData } from '@/services/tournaments';
 
 interface CreateTournamentModalProps {
   onSuccess?: () => void;
 }
 
+interface GameType {
+  id: number;
+  name: string;
+  color: string;
+  icon_path: string;
+}
+
 export function CreateTournamentModal({ onSuccess }: CreateTournamentModalProps) {
   const [open, setOpen] = useState(false);
+  const [availableGameTypes, setAvailableGameTypes] = useState<GameType[]>([]);
   const [formData, setFormData] = useState<CreateTournamentData>({
     name: '',
     description: '',
     game_type_id: 1,
     location: '',
     address: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    country: '',
     starts_at: '',
     ends_at: '',
     registration_deadline: '',
     max_participants: 16,
+    min_participants: 2,
     entry_fee: 0,
     prize_pool: 0,
     prize_description: '',
     skill_level: 2,
     rules: '',
-    format: '',
+    format: 'single-elimination',
+    bracket_type: 'standard',
     status: 'pending_approval',
+    waiting_list_enabled: false,
   });
 
   const queryClient = useQueryClient();
 
+  // Fetch available game types (user's interests only) using React Query
+  const {
+    data: availableGameTypesResponse,
+    isLoading: isLoadingGameTypes
+  } = useQuery({
+    queryKey: ['available-game-types-create-tournament'],
+    queryFn: () => tournamentsService.getAvailableGameTypes(),
+    enabled: open, // Only fetch when modal is open
+  });
+
+  // Update available game types and set default when data changes
+  useEffect(() => {
+    if (availableGameTypesResponse?.data && availableGameTypesResponse.data.length > 0) {
+      setAvailableGameTypes(availableGameTypesResponse.data);
+      // Set first game type as default if available
+      setFormData(prev => {
+        // Only update if current game_type_id doesn't exist in available types
+        const hasValidGameType = availableGameTypesResponse.data.some(gt => gt.id === prev.game_type_id);
+        if (!hasValidGameType) {
+          return { ...prev, game_type_id: availableGameTypesResponse.data[0].id };
+        }
+        return prev;
+      });
+    }
+  }, [availableGameTypesResponse]);
+
   const createTournamentMutation = useMutation({
-    mutationFn: (data: CreateTournamentData) => tournamentService.createTournament(data),
+    mutationFn: (data: CreateTournamentData) => tournamentsService.createTournament(data),
     onSuccess: (data) => {
       toast.success('Tournament created successfully!');
       setOpen(false);
       setFormData({
         name: '',
         description: '',
-        game_type_id: 0,
+        game_type_id: 1,
         location: '',
         address: '',
         city: '',
@@ -55,15 +96,16 @@ export function CreateTournamentModal({ onSuccess }: CreateTournamentModalProps)
         starts_at: '',
         ends_at: '',
         registration_deadline: '',
-        max_participants: undefined,
+        max_participants: 16,
         min_participants: 2,
         entry_fee: 0,
-        prize_pool: undefined,
+        prize_pool: 0,
         prize_description: '',
-        skill_level: 1,
+        skill_level: 2,
         rules: '',
         format: 'single-elimination',
         bracket_type: 'standard',
+        status: 'pending_approval',
         waiting_list_enabled: false,
       });
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
@@ -127,28 +169,46 @@ export function CreateTournamentModal({ onSuccess }: CreateTournamentModalProps)
               
               <div className="space-y-2">
                 <Label htmlFor="game_type">Sport *</Label>
-                <Select value={formData.game_type_id.toString()} onValueChange={(value) => handleInputChange('game_type_id', parseInt(value))}>
+                <Select 
+                  value={formData.game_type_id.toString()} 
+                  onValueChange={(value) => handleInputChange('game_type_id', parseInt(value))}
+                  disabled={isLoadingGameTypes}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select sport" />
+                    <SelectValue placeholder={isLoadingGameTypes ? "Loading your sports..." : "Select sport from your interests"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="2">Football</SelectItem>
-                    <SelectItem value="3">Tennis</SelectItem>
-                    <SelectItem value="1">Basketball</SelectItem>
-                    <SelectItem value="10">Cricket</SelectItem>
-                    <SelectItem value="4">Swimming</SelectItem>
-                    <SelectItem value="5">Cycling</SelectItem>
-                    <SelectItem value="6">Running</SelectItem>
-                    <SelectItem value="7">Volleyball</SelectItem>
-                    <SelectItem value="8">Badminton</SelectItem>
-                    <SelectItem value="9">Table Tennis</SelectItem>
-                    <SelectItem value="13">Golf</SelectItem>
-                    <SelectItem value="11">Hockey</SelectItem>
-                    <SelectItem value="12">Rugby</SelectItem>
-                    <SelectItem value="14">Boxing</SelectItem>
-                    <SelectItem value="15">Martial Arts</SelectItem>
+                    {isLoadingGameTypes ? (
+                      <SelectItem value="loading" disabled>Loading your sports...</SelectItem>
+                    ) : availableGameTypes.length > 0 ? (
+                      availableGameTypes.map((gameType) => (
+                        <SelectItem key={gameType.id} value={gameType.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: gameType.color }}
+                            />
+                            {gameType.name}
+                          </div>
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-interests" disabled>
+                        Set your interests in profile to create tournaments
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {availableGameTypes.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Showing {availableGameTypes.length} sport(s) from your interests
+                  </p>
+                )}
+                {availableGameTypes.length === 0 && !isLoadingGameTypes && (
+                  <p className="text-xs text-amber-600">
+                    No sports available. Set your interests in your profile to create tournaments.
+                  </p>
+                )}
               </div>
             </div>
 
