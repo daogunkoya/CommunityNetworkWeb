@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, MessageCircle } from 'lucide-react';
-import discussionsService, { Discussion as DiscussionDetailType } from '@/services/discussions';
+import discussionsService, { DiscussionDetail as DiscussionDetailType } from '@/services/discussions';
 import { CommentModal } from '@/components/CommentModal';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -68,12 +68,12 @@ export default function DiscussionDetail() {
             <Avatar className="h-10 w-10">
               <AvatarImage src={discussion.author.avatar} />
               <AvatarFallback>
-                {discussion.author.name.split(' ').map(n => n[0]).join('')}
+                {discussion.author?.name?.split(' ').map(n => n[0]).join('') || '??'}
               </AvatarFallback>
             </Avatar>
             <div>
               <CardTitle className="text-xl font-bold">{discussion.title}</CardTitle>
-              <p className="text-sm text-muted-foreground">By {discussion.author.name} • {discussion.created_at_relative}</p>
+              <p className="text-sm text-muted-foreground">By {discussion.author?.name || 'Unknown'} • {discussion.created_at_relative}</p>
             </div>
             {discussion.game_type && (
               <Badge className="ml-auto text-white" style={{ backgroundColor: discussion.game_type.color }}>
@@ -101,11 +101,11 @@ export default function DiscussionDetail() {
                   <div key={c.id} className="flex gap-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={c.author.avatar} />
-                      <AvatarFallback className="text-xs">{c.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarFallback className="text-xs">{c.author?.name?.split(' ').map((n: string) => n[0]).join('') || '??'}</AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="text-sm">
-                        <span className="font-medium">{c.author.name}</span>
+                        <span className="font-medium">{c.author?.name || 'Unknown'}</span>
                         <span className="text-muted-foreground ml-2">{c.created_at_relative}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">{c.body}</p>

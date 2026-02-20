@@ -61,41 +61,41 @@ export function GameEventCard({
     navigate(`/games/${event.id}`);
   };
 
-  const isOrganizer = event.organiser.id === 1; // Assuming current user ID is 1
+  const isOrganizer = event.organiser?.id === 1; // Assuming current user ID is 1
   const canJoin = event.user_participation.can_join;
   const isParticipating = event.user_participation.is_participating;
 
   return (
-    <Card 
+    <Card
       className="border-border/50 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => navigate(`/games/${event.id}`)}
     >
       <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between">
           <Link to={`/games/${event.id}`} className="flex items-center gap-3 group" onClick={(e) => e.stopPropagation()}>
             <Avatar className="h-10 w-10">
-              <AvatarImage 
-                src={event.organiser.avatar ? 
-                  (event.organiser.avatar.startsWith('http') ? 
-                    event.organiser.avatar : 
+              <AvatarImage
+                src={event.organiser?.avatar ?
+                  (event.organiser.avatar.startsWith('http') ?
+                    event.organiser.avatar :
                     getStorageUrlSafe(event.organiser.avatar)
                   ) : undefined
-                } 
+                }
               />
               <AvatarFallback>
-                {event.organiser.name.split(' ').map(n => n[0]).join('')}
+                {event.organiser?.name?.split(' ').map(n => n[0]).join('') || '??'}
               </AvatarFallback>
             </Avatar>
             <div>
               <h3 className="font-semibold text-lg group-hover:underline">
-                  {event.title}
+                {event.title}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Organized by {event.organiser.name}
+                Organized by {event.organiser?.name || 'Unknown'}
               </p>
             </div>
           </Link>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
@@ -119,7 +119,7 @@ export function GameEventCard({
           </DropdownMenu>
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-0 space-y-3">
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
@@ -144,7 +144,7 @@ export function GameEventCard({
           <p className="text-sm text-muted-foreground">{event.notes}</p>
         )}
 
-          <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
@@ -170,9 +170,9 @@ export function GameEventCard({
             <Button asChild variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
               <Link to={`/games/${event.id}`}>View details</Link>
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleComment}
               className="flex items-center gap-1"
             >
@@ -180,8 +180,8 @@ export function GameEventCard({
               Discuss
             </Button>
             {canJoin && !isParticipating && (
-              <Button 
-                onClick={(e) => handleJoin(e)} 
+              <Button
+                onClick={(e) => handleJoin(e)}
                 disabled={isJoining}
                 size="sm"
               >
@@ -196,8 +196,8 @@ export function GameEventCard({
               </Button>
             )}
             {isParticipating && (
-              <Button 
-                onClick={(e) => handleLeave(e)} 
+              <Button
+                onClick={(e) => handleLeave(e)}
                 disabled={isLeaving}
                 variant="outline"
                 size="sm"
@@ -221,13 +221,13 @@ export function GameEventCard({
             <div className="flex flex-wrap gap-1">
               {(event.participants ?? []).slice(0, 5).map((participant) => (
                 <Avatar key={participant.id} className="h-6 w-6">
-                  <AvatarImage 
-                    src={participant.avatar ? 
-                      (participant.avatar.startsWith('http') ? 
-                        participant.avatar : 
+                  <AvatarImage
+                    src={participant.avatar ?
+                      (participant.avatar.startsWith('http') ?
+                        participant.avatar :
                         getStorageUrlSafe(participant.avatar)
                       ) : undefined
-                    } 
+                    }
                   />
                   <AvatarFallback className="text-xs">
                     {participant.name?.split(' ').map(n => n[0]).join('') || '??'}

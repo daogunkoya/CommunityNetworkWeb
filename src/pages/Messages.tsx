@@ -25,7 +25,7 @@ const OnlineStatus = ({ isOnline, lastSeen }: { isOnline?: boolean; lastSeen?: s
       </div>
     );
   }
-  
+
   return (
     <div className="flex items-center space-x-1">
       <div className="h-2 w-2 rounded-full bg-gray-400"></div>
@@ -49,13 +49,13 @@ interface User {
 }
 
 // Component for creating new conversations
-const CreateConversationModal = ({ 
-  isOpen, 
-  onClose, 
-  onConversationCreated 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
+const CreateConversationModal = ({
+  isOpen,
+  onClose,
+  onConversationCreated
+}: {
+  isOpen: boolean;
+  onClose: () => void;
   onConversationCreated: (conversation: any) => void;
 }) => {
   const [conversationType, setConversationType] = useState<ConversationType>('direct');
@@ -123,8 +123,8 @@ const CreateConversationModal = ({
   );
 
   const handleUserToggle = (userId: number) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
+    setSelectedUsers(prev =>
+      prev.includes(userId)
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     );
@@ -209,7 +209,7 @@ const CreateConversationModal = ({
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-800">Select Users</label>
-                                <div className="max-h-48 overflow-y-auto space-y-2 border-2 border-gray-200 rounded-lg p-3 bg-gray-50">
+                <div className="max-h-48 overflow-y-auto space-y-2 border-2 border-gray-200 rounded-lg p-3 bg-gray-50">
                   {loadingUsers ? (
                     <div className="text-center py-4">
                       <p className="text-sm text-muted-foreground">Loading users...</p>
@@ -219,22 +219,21 @@ const CreateConversationModal = ({
                       {filteredUsers.map((user: User) => (
                         <div
                           key={user.id}
-                          className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                            selectedUsers.includes(user.id) ? 'bg-primary/10 border border-primary' : 'hover:bg-gray-50'
-                          }`}
+                          className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedUsers.includes(user.id) ? 'bg-primary/10 border border-primary' : 'hover:bg-gray-50'
+                            }`}
                           onClick={() => handleUserToggle(user.id)}
                         >
                           <Avatar className="h-8 w-8">
                             <AvatarImage src={user.profile_picture} />
-                            <AvatarFallback>{user.full_name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                            <AvatarFallback>{user.full_name?.split(' ').map(n => n[0]).join('') || '??'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{user.full_name}</p>
                             <div className="flex items-center justify-between">
                               {user.location && <p className="text-xs text-muted-foreground truncate">{user.location}</p>}
-                              <OnlineStatus 
-                                isOnline={user.is_online} 
-                                lastSeen={user.last_seen_formatted} 
+                              <OnlineStatus
+                                isOnline={user.is_online}
+                                lastSeen={user.last_seen_formatted}
                               />
                             </div>
                           </div>
@@ -275,16 +274,16 @@ const CreateConversationModal = ({
           )}
 
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onClose}
               className="px-6 py-2 font-medium border-gray-300 hover:bg-gray-50"
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCreate}
-              disabled={createConversationMutation.isPending || 
+              disabled={createConversationMutation.isPending ||
                 (conversationType === 'direct' && selectedUsers.length !== 1) ||
                 (conversationType === 'group' && selectedUsers.length < 2) ||
                 (conversationType === 'group' && !groupName.trim())}
@@ -367,7 +366,7 @@ export default function Messages() {
       console.log('Conversations API response:', result);
       // Debug: Check Sarah's status specifically
       if (result.data) {
-        const sarahConversation = result.data.find((conv: any) => 
+        const sarahConversation = result.data.find((conv: any) =>
           conv.name === 'Sarah Johnson' || conv.participant_online_status !== undefined
         );
         if (sarahConversation) {
@@ -490,28 +489,28 @@ export default function Messages() {
           data: [...oldData.data, newMessageItem]
         };
       });
-      
+
       // Update conversation list with new last message
       queryClient.setQueryData(['conversations', conversationType], (oldData: any) => {
         if (!oldData || !Array.isArray(oldData.data)) return oldData;
         return {
           ...oldData,
-          data: oldData.data.map((conv: any) => 
-            conv.id === selectedChat 
-              ? { 
-                  ...conv, 
-                  last_message: { 
-                    content: newMessageItem.content, 
-                    time: 'just now' 
-                  } 
+          data: oldData.data.map((conv: any) =>
+            conv.id === selectedChat
+              ? {
+                ...conv,
+                last_message: {
+                  content: newMessageItem.content,
+                  time: 'just now'
                 }
+              }
               : conv
           )
         };
       });
-      
+
       setNewMessage('');
-      
+
       // Focus input after successful message send
       setTimeout(() => {
         if (inputRef.current) {
@@ -529,7 +528,7 @@ export default function Messages() {
         created_at_relative: 'just now',
         is_own: true,
       };
-      
+
       queryClient.setQueryData(['messages', selectedChat], (oldData: any) => {
         if (!oldData) return { data: [newMessageItem] };
         return {
@@ -537,26 +536,26 @@ export default function Messages() {
           data: [...oldData.data, newMessageItem]
         };
       });
-      
+
       // Update conversation list
       queryClient.setQueryData(['conversations', conversationType], (oldData: any) => {
         if (!oldData || !Array.isArray(oldData.data)) return oldData;
         return {
           ...oldData,
-          data: oldData.data.map((conv: any) => 
-            conv.id === selectedChat 
-              ? { 
-                  ...conv, 
-                  last_message: { 
-                    content: newMessageItem.content, 
-                    time: 'just now' 
-                  } 
+          data: oldData.data.map((conv: any) =>
+            conv.id === selectedChat
+              ? {
+                ...conv,
+                last_message: {
+                  content: newMessageItem.content,
+                  time: 'just now'
                 }
+              }
               : conv
           )
         };
       });
-      
+
       setNewMessage('');
       toast.error(error.message || 'Failed to send message');
     },
@@ -564,14 +563,14 @@ export default function Messages() {
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedChat) return;
-    
+
     // Stop typing indicator when sending message
     if (isTyping) {
       handleTypingStop();
     }
-    
+
     sendMessageMutation.mutate({ conversationId: selectedChat, content: newMessage.trim() });
-    
+
     // Focus the input after sending
     setTimeout(() => {
       if (inputRef.current) {
@@ -583,7 +582,7 @@ export default function Messages() {
   const handleConversationSelect = async (conversationId: number) => {
     setSelectedChat(conversationId);
     setShowGroupMembers(false); // Reset group members display when switching conversations
-    
+
     // Mark conversation as read
     try {
       await api.post(`/conversations/${conversationId}/read`);
@@ -592,7 +591,7 @@ export default function Messages() {
     } catch (error) {
       console.error('Failed to mark conversation as read:', error);
     }
-    
+
     // Focus input when conversation is selected
     setTimeout(() => {
       if (inputRef.current) {
@@ -608,7 +607,7 @@ export default function Messages() {
   // Typing indicator handlers
   const handleTypingStart = async () => {
     if (!selectedChat || isTyping) return;
-    
+
     try {
       setIsTyping(true);
       await messagesService.startTyping(selectedChat);
@@ -619,7 +618,7 @@ export default function Messages() {
 
   const handleTypingStop = async () => {
     if (!selectedChat || !isTyping) return;
-    
+
     try {
       setIsTyping(false);
       await messagesService.stopTyping(selectedChat);
@@ -630,17 +629,17 @@ export default function Messages() {
 
   const handleInputChange = (value: string) => {
     setNewMessage(value);
-    
+
     // Start typing indicator when user starts typing
     if (value.length === 1 && !isTyping) {
       handleTypingStart();
     }
-    
+
     // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    
+
     // Set timeout to stop typing indicator after 2 seconds of no input
     typingTimeoutRef.current = setTimeout(() => {
       if (isTyping) {
@@ -721,11 +720,11 @@ export default function Messages() {
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                     <span className="font-medium">
-                      {conversationType === 'all' ? 'All Conversations' : 
-                       conversationType === 'direct' ? 'Direct Messages' :
-                       conversationType === 'group' ? 'Group Chats' :
-                       conversationType === 'tournament' ? 'Tournament Chats' :
-                       'Community Chats'}
+                      {conversationType === 'all' ? 'All Conversations' :
+                        conversationType === 'direct' ? 'Direct Messages' :
+                          conversationType === 'group' ? 'Group Chats' :
+                            conversationType === 'tournament' ? 'Tournament Chats' :
+                              'Community Chats'}
                     </span>
                   </div>
                 </SelectValue>
@@ -769,9 +768,8 @@ export default function Messages() {
             conversations.map((conversation) => (
               <div
                 key={conversation.id}
-                className={`p-4 border-b cursor-pointer transition-colors ${
-                  selectedChat === conversation.id ? 'bg-primary/5 border-primary' : 'hover:bg-gray-50'
-                }`}
+                className={`p-4 border-b cursor-pointer transition-colors ${selectedChat === conversation.id ? 'bg-primary/5 border-primary' : 'hover:bg-gray-50'
+                  }`}
                 onClick={() => handleConversationSelect(conversation.id)}
               >
                 <div className="flex items-center space-x-3">
@@ -781,7 +779,7 @@ export default function Messages() {
                       {conversation.type === 'group' ? (
                         <Users className="h-5 w-5" />
                       ) : (
-                        conversation.name.split(' ').map(n => n[0]).join('')
+                        conversation.name?.split(' ').map(n => n[0]).join('') || '??'
                       )}
                     </AvatarFallback>
                   </Avatar>
@@ -805,9 +803,9 @@ export default function Messages() {
                       </p>
                       <div className="flex items-center space-x-2">
                         {conversation.type === 'direct' && (
-                          <OnlineStatus 
-                            isOnline={conversation.participant_online_status} 
-                            lastSeen={conversation.participant_last_seen} 
+                          <OnlineStatus
+                            isOnline={conversation.participant_online_status}
+                            lastSeen={conversation.participant_last_seen}
                           />
                         )}
                         {conversation.participants_count && (
@@ -830,7 +828,7 @@ export default function Messages() {
         {/* Header */}
         {selectedConversation ? (
           <div className="p-4 border-b bg-white">
-            <div 
+            <div
               className={`flex items-center space-x-3 ${selectedConversation.type === 'group' ? 'cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors' : ''}`}
               onClick={selectedConversation.type === 'group' ? toggleGroupMembers : undefined}
             >
@@ -840,7 +838,7 @@ export default function Messages() {
                   {selectedConversation.type === 'group' ? (
                     <Users className="h-4 w-4" />
                   ) : (
-                    selectedConversation.name.split(' ').map(n => n[0]).join('')
+                    selectedConversation.name?.split(' ').map(n => n[0]).join('') || '??'
                   )}
                 </AvatarFallback>
               </Avatar>
@@ -855,20 +853,20 @@ export default function Messages() {
                 </h3>
                 <div className="flex items-center space-x-2">
                   <p className="text-sm text-muted-foreground">
-                    {selectedConversation.type === 'direct' ? 'Direct message' : 
-                     selectedConversation.type === 'group' ? `${selectedConversation.participants_count} members` :
-                     selectedConversation.type}
+                    {selectedConversation.type === 'direct' ? 'Direct message' :
+                      selectedConversation.type === 'group' ? `${selectedConversation.participants_count} members` :
+                        selectedConversation.type}
                   </p>
                   {selectedConversation.type === 'direct' && (
-                    <OnlineStatus 
-                      isOnline={selectedConversation.participant_online_status} 
-                      lastSeen={selectedConversation.participant_last_seen} 
+                    <OnlineStatus
+                      isOnline={selectedConversation.participant_online_status}
+                      lastSeen={selectedConversation.participant_last_seen}
                     />
                   )}
                 </div>
               </div>
             </div>
-            
+
             {/* Group Members Display */}
             {selectedConversation.type === 'group' && showGroupMembers && participants.length > 0 && (
               <div className="mt-3 pt-3 border-t border-gray-100">
@@ -882,13 +880,13 @@ export default function Messages() {
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={participant.avatar} />
                         <AvatarFallback className="text-xs">
-                          {participant.name.split(' ').map((n: string) => n[0]).join('')}
+                          {participant.name?.split(' ').map((n: string) => n[0]).join('') || '??'}
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-xs font-medium text-gray-700">{participant.name}</span>
-                      <OnlineStatus 
-                        isOnline={participant.is_online} 
-                        lastSeen={participant.last_seen_formatted} 
+                      <OnlineStatus
+                        isOnline={participant.is_online}
+                        lastSeen={participant.last_seen_formatted}
                       />
                     </div>
                   ))}
@@ -937,26 +935,23 @@ export default function Messages() {
                           <p className="text-xs font-semibold text-gray-600">{message.sender?.name}</p>
                         </div>
                       )}
-                      
+
                       {/* Message bubble */}
                       <div
-                        className={`relative px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 group-hover:shadow-md ${
-                          isOwn
+                        className={`relative px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 group-hover:shadow-md ${isOwn
                             ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-br-md'
                             : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md'
-                        }`}
+                          }`}
                       >
                         {/* Message content */}
-                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                          isOwn ? 'text-white' : 'text-gray-800'
-                        }`}>
+                        <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${isOwn ? 'text-white' : 'text-gray-800'
+                          }`}>
                           {message.content}
                         </p>
-                        
+
                         {/* Timestamp */}
-                        <div className={`flex items-center justify-end mt-2 space-x-1 ${
-                          isOwn ? 'text-blue-100' : 'text-gray-400'
-                        }`}>
+                        <div className={`flex items-center justify-end mt-2 space-x-1 ${isOwn ? 'text-blue-100' : 'text-gray-400'
+                          }`}>
                           <span className="text-xs">
                             {message.created_at_relative || ''}
                           </span>

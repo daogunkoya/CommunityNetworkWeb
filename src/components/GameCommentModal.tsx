@@ -16,12 +16,12 @@ interface GameCommentModalProps {
   onCommentAdded?: () => void; // Callback to update comment count
 }
 
-export function GameCommentModal({ 
-  isOpen, 
-  onClose, 
-  gameEventId, 
-  gameEventTitle, 
-  onCommentAdded 
+export function GameCommentModal({
+  isOpen,
+  onClose,
+  gameEventId,
+  gameEventTitle,
+  onCommentAdded
 }: GameCommentModalProps) {
   const [comments, setComments] = useState<GameEventComment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -88,7 +88,7 @@ export function GameCommentModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newComment.trim()) {
       toast({
         title: 'Error',
@@ -113,12 +113,12 @@ export function GameCommentModal({
         title: 'Success',
         description: 'Comment added successfully!',
       });
-      
+
       // Call the callback to update comment count in parent component
       if (onCommentAdded) {
         onCommentAdded();
       }
-      
+
       // Close the modal after successful submission
       onClose();
     } catch (error: any) {
@@ -135,7 +135,7 @@ export function GameCommentModal({
   // Typing indicator handlers
   const handleTypingStart = async () => {
     if (isTyping) return;
-    
+
     try {
       setIsTyping(true);
       await gameCommentsService.startTyping(gameEventId);
@@ -146,7 +146,7 @@ export function GameCommentModal({
 
   const handleTypingStop = async () => {
     if (!isTyping) return;
-    
+
     try {
       setIsTyping(false);
       await gameCommentsService.stopTyping(gameEventId);
@@ -206,12 +206,12 @@ export function GameCommentModal({
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={comment.author.avatar} />
                       <AvatarFallback className="text-xs">
-                        {comment.author.name.split(' ').map(n => n[0]).join('')}
+                        {comment.author?.name?.split(' ').map((n: string) => n[0]).join('') || '??'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{comment.author.name}</span>
+                        <span className="font-medium text-sm">{comment.author?.name || 'Unknown'}</span>
                         <Badge variant="secondary" className="text-xs">
                           {comment.created_at_relative}
                         </Badge>
@@ -230,7 +230,7 @@ export function GameCommentModal({
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
                 <span>
-                  {typingUsers.map(u => u.user_name).join(', ')} 
+                  {typingUsers.map(u => u.user_name).join(', ')}
                   {typingUsers.length === 1 ? ' is' : ' are'} typing...
                 </span>
               </div>
@@ -251,9 +251,9 @@ export function GameCommentModal({
                 <p className="text-xs text-muted-foreground">
                   Share suggestions, ask questions, or coordinate with other players
                 </p>
-                <Button 
-                  type="submit" 
-                  size="sm" 
+                <Button
+                  type="submit"
+                  size="sm"
                   disabled={!newComment.trim() || isSubmitting}
                   className="ml-auto"
                 >

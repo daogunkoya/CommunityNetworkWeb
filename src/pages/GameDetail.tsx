@@ -121,21 +121,21 @@ export default function GameDetail() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarImage 
-                  src={event.organiser.avatar ? 
-                    (event.organiser.avatar.startsWith('http') ? 
-                      event.organiser.avatar : 
+                <AvatarImage
+                  src={event.organiser?.avatar ?
+                    (event.organiser.avatar.startsWith('http') ?
+                      event.organiser.avatar :
                       getStorageUrlSafe(event.organiser.avatar)
                     ) : undefined
-                  } 
+                  }
                 />
                 <AvatarFallback>
-                  {event.organiser.name.split(' ').map(n => n[0]).join('')}
+                  {event.organiser?.name?.split(' ').map(n => n[0]).join('') || '??'}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <CardTitle className="text-2xl font-bold">{event.title}</CardTitle>
-                <p className="text-sm text-muted-foreground">Organized by {event.organiser.name}</p>
+                <p className="text-sm text-muted-foreground">Organized by {event.organiser?.name || 'Unknown'}</p>
               </div>
             </div>
             <Badge className="text-white" variant="default">{event.sport}</Badge>
@@ -201,7 +201,7 @@ export default function GameDetail() {
                 {(event.participants ?? []).map((p) => (
                   <div key={p.id} className="flex items-center gap-2 px-2 py-1 rounded border">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage 
+                      <AvatarImage
                         src={p.avatar ? (p.avatar.startsWith('http') ? p.avatar : getStorageUrlSafe(p.avatar)) : undefined}
                       />
                       <AvatarFallback className="text-xs">{p.name?.split(' ').map(n => n[0]).join('') || '??'}</AvatarFallback>
@@ -225,14 +225,14 @@ export default function GameDetail() {
               <CardTitle className="text-lg">Game Discussions</CardTitle>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => navigate('/discussion')}
               >
                 Browse All Discussions
               </Button>
-              <Button 
+              <Button
                 size="sm"
                 onClick={() => setIsCreateModalOpen(true)}
               >
@@ -269,13 +269,13 @@ export default function GameDetail() {
                   </span>
                 </div>
               </div>
-              
+
               {discussionsResponse.data.slice(0, 5).map((discussion: any) => (
                 <PostCard
                   key={discussion.id}
                   id={discussion.id}
-                  author={discussion.author.name}
-                  avatar={discussion.author.avatar}
+                  author={discussion.author?.name || 'Unknown'}
+                  avatar={discussion.author?.avatar}
                   time={discussion.created_at_relative}
                   content={discussion.excerpt}
                   type="discussion"
@@ -287,8 +287,8 @@ export default function GameDetail() {
               ))}
               {Array.isArray(discussionsResponse?.data) && discussionsResponse.data.length > 5 && (
                 <div className="text-center pt-4">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => navigate('/discussion')}
                   >
                     View {discussionsResponse.data.length - 5} more discussions
